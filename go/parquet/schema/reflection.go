@@ -64,6 +64,8 @@ type taggedInfo struct {
 	LogicalType      LogicalType
 	KeyLogicalType   LogicalType
 	ValueLogicalType LogicalType
+
+	Exclude bool
 }
 
 func (t *taggedInfo) CopyForKey() (ret taggedInfo) {
@@ -186,6 +188,7 @@ func newTaggedInfo() taggedInfo {
 		LogicalType:        NoLogicalType{},
 		KeyLogicalType:     NoLogicalType{},
 		ValueLogicalType:   NoLogicalType{},
+		Exclude:            false,
 	}
 }
 
@@ -232,6 +235,10 @@ func infoFromTags(f reflect.StructTag) *taggedInfo {
 
 	if ptags, ok := f.Lookup("parquet"); ok {
 		info := newTaggedInfo()
+		if ptags == "-" {
+			info.Exclude = true
+			return &info
+		}
 		for _, tag := range strings.Split(strings.Replace(ptags, "\t", "", -1), ",") {
 			tag = strings.TrimSpace(tag)
 			kv := strings.SplitN(tag, "=", 2)
@@ -370,8 +377,10 @@ func typeToNode(name string, typ reflect.Type, repType parquet.Repetition, info 
 		fields := make(FieldList, 0)
 		for i := 0; i < typ.NumField(); i++ {
 			f := typ.Field(i)
-
-			fields = append(fields, typeToNode(f.Name, f.Type, parquet.Repetitions.Required, infoFromTags(f.Tag)))
+			tags := infoFromTags(f.Tag)
+			if tags == nil || !tags.Exclude {
+				fields = append(fields, typeToNode(f.Name, f.Type, parquet.Repetitions.Required, tags))
+			}
 		}
 		// group nodes don't have a physical type
 		if physical != parquet.Types.Undefined {
@@ -536,7 +545,7 @@ func typeToNode(name string, typ reflect.Type, repType parquet.Repetition, info 
 // NewSchemaFromStruct generates a schema from an object type via reflection of
 // the type and reading struct tags for "parquet".
 //
-// Rules
+// # Rules
 //
 // Everything defaults to Required repetition, unless otherwise specified.
 // Pointer types become Optional repetition.
@@ -556,7 +565,7 @@ func typeToNode(name string, typ reflect.Type, repType parquet.Repetition, info 
 //
 // maps will become appropriate Map structures in the schema of the defined key and values.
 //
-// Available Tags
+// # Available Tags
 //
 // name: by default the node will have the same name as the field, this tag let's you specify a name
 //
