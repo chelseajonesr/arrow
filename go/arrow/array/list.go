@@ -19,6 +19,7 @@ package array
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync/atomic"
 
@@ -631,6 +632,37 @@ func (b *baseListBuilder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *baseListBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	if v.Kind() == reflect.Slice && v.IsNil() {
+		b.AppendNull()
+		return nil
+	}
+
+	if v.Len() == 0 {
+		b.AppendEmptyValue()
+		return nil
+	}
+
+	b.Append(true)
+	b.values.Reserve(v.Len())
+	for i := 0; i < v.Len(); i++ {
+		err := b.values.AppendReflectValue(v.Index(i), reflectMapping)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ListView represents an immutable sequence of array values defined by an
@@ -1410,7 +1442,56 @@ func (b *baseListViewBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-// Find the minimum offset+size in a LIST_VIEW/LARGE_LIST_VIEW array.
+func (b *baseListViewBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	return fmt.Errorf("no conversion available to ListView")
+}
+
+// Pre-conditions:
+//
+//	input.DataType() is ListViewType
+//	input.Len() > 0 && input.NullN() != input.Len()
+func minListViewOffset32(input arrow.ArrayData) int32 {
+	var bitmap []byte
+	if input.Buffers()[0] != nil {
+		bitmap = input.Buffers()[0].Bytes()
+	}
+	offsets := arrow.Int32Traits.CastFromBytes(input.Buffers()[1].Bytes())[input.Offset():]
+	sizes := arrow.Int32Traits.CastFromBytes(input.Buffers()[2].Bytes())[input.Offset():]
+
+	isNull := func(i int) bool {
+		return bitmap != nil && bitutil.BitIsNotSet(bitmap, input.Offset()+i)
+	}
+
+	// It's very likely that the first non-null non-empty list-view starts at
+	// offset 0 of the child array.
+	i := 0
+	for i < input.Len() && (isNull(i) || sizes[i] == 0) {
+		i += 1
+	}
+	if i >= input.Len() {
+		return 0
+	}
+	minOffset := offsets[i]
+	if minOffset == 0 {
+		// early exit: offset 0 found already
+		return 0
+	}
+
+	// Slow path: scan the buffers entirely.
+	i += 1
+	for ; i < input.Len(); i += 1 {
+		if isNull(i) {
+			continue
+		}
+		offset := offsets[i]
+		if offset < minOffset && sizes[i] > 0 {
+			minOffset = offset
+		}
+	}
+	return minOffset
+}
+
+// Find the maximum offset+size in a LIST_VIEW array.
 //
 // Pre-conditions:
 //

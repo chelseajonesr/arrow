@@ -18,6 +18,7 @@ package array_test
 
 import (
 	"math"
+	"reflect"
 	"testing"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -31,8 +32,8 @@ func TestMonthIntervalArray(t *testing.T) {
 	defer mem.AssertSize(t, 0)
 
 	var (
-		want   = []arrow.MonthInterval{1, 2, 3, 4}
-		valids = []bool{true, true, false, true}
+		want   = []arrow.MonthInterval{1, 2, 3, 4, 5}
+		valids = []bool{true, true, false, true, true}
 	)
 
 	b := array.NewMonthIntervalBuilder(mem)
@@ -44,6 +45,7 @@ func TestMonthIntervalArray(t *testing.T) {
 	b.AppendValues(want[:2], nil)
 	b.AppendNull()
 	b.Append(want[3])
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(int32(want[4])), nil))
 
 	if got, want := b.Len(), len(want); got != want {
 		t.Fatalf("invalid len: got=%d, want=%d", got, want)
@@ -92,7 +94,7 @@ func TestMonthIntervalArray(t *testing.T) {
 		t.Fatalf("could not type-assert to array.MonthInterval")
 	}
 
-	if got, want := arr.String(), `[1 2 (null) 4]`; got != want {
+	if got, want := arr.String(), `[1 2 (null) 4 5]`; got != want {
 		t.Fatalf("got=%q, want=%q", got, want)
 	}
 	slice := array.NewSliceData(arr.Data(), 2, 4)

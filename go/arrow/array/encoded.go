@@ -514,6 +514,10 @@ func (b *RunEndEncodedBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *RunEndEncodedBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	return fmt.Errorf("no conversion available to RunEndEncoded")
+}
+
 var (
 	_ arrow.Array = (*RunEndEncoded)(nil)
 	_ Builder     = (*RunEndEncodedBuilder)(nil)

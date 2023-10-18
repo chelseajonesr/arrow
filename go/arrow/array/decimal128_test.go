@@ -17,6 +17,7 @@
 package array_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -93,6 +94,62 @@ func TestNewDecimal128Builder(t *testing.T) {
 	assert.Equal(t, 2*arrow.Decimal128SizeBytes, a.Data().Buffers()[1].Len())
 
 	a.Release()
+}
+
+func TestDecimal128Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	var nilPtr *int64
+	v := int32(111)
+	ptr := &v
+
+	goPrimitives := []any{
+		int64(-1),
+		int64(12345),
+		int32(12),
+		nil,
+		int32(-54321),
+		int16(16),
+		nilPtr,
+		int(-20),
+		uint64(1234567),
+		int8(2),
+		ptr,
+	}
+	ab := array.NewDecimal128Builder(mem, &arrow.Decimal128Type{Precision: 10, Scale: 1})
+	defer ab.Release()
+
+	want := make([]decimal128.Num, len(goPrimitives))
+
+	for i := 0; i < len(goPrimitives); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(goPrimitives[i]), nil))
+		switch t := goPrimitives[i].(type) {
+		case uint64:
+			want[i] = decimal128.FromU64(t)
+		case int64:
+			want[i] = decimal128.FromI64(t)
+		case int32:
+			want[i] = decimal128.FromI64(int64(t))
+		case int16:
+			want[i] = decimal128.FromI64(int64(t))
+		case int8:
+			want[i] = decimal128.FromI64(int64(t))
+		case int:
+			want[i] = decimal128.FromI64(int64(t))
+		case *int32:
+			if t != nil {
+				want[i] = decimal128.FromI64(int64(*t))
+			}
+		}
+	}
+	assert.Equal(t, len(goPrimitives), ab.Len(), "unexpected Len()")
+	assert.Equal(t, 2, ab.NullN(), "unexpected NullN()")
+
+	a := ab.NewArray().(*array.Decimal128)
+	defer a.Release()
+	assert.Equal(t, 2, a.NullN(), "unexpected null count")
+	assert.Equal(t, want, a.Values(), "unexpected Decimal128Values")
 }
 
 func TestDecimal128Builder_Empty(t *testing.T) {

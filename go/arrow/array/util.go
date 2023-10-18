@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -520,4 +521,49 @@ func MakeArrayOfNull(mem memory.Allocator, dt arrow.DataType, length int) arrow.
 	data := (&nullArrayFactory{mem: mem, dt: dt, len: length}).create()
 	defer data.Release()
 	return MakeFromData(data)
+}
+
+type ReflectMapping struct {
+	ArrowIndex     int
+	NestedMappings map[int]ReflectMapping
+}
+
+// ReflectMappingFromStruct generates a simple mapping of struct field indices to arrow schema indices,
+// skipping any fields with tag `parquet:"-"`
+// This can be used with AppendReflectValue() to build an Arrow array from Go structs, assuming
+// the builder's schema was generated with schema.NewSchemaFromStruct() and pqarrow.FromParquet()
+func ReflectMappingFromStruct[T any]() ReflectMapping {
+	var v [0]T
+	t := reflect.TypeOf(v).Elem()
+	mapping := make(map[int]ReflectMapping)
+
+	// Recursively add fields to mapping
+	addFieldToMapping(t, mapping)
+
+	return ReflectMapping{NestedMappings: mapping}
+}
+
+func addFieldToMapping(t reflect.Type, mapping map[int]ReflectMapping) {
+	for t.Kind() == reflect.Pointer || t.Kind() == reflect.Array || t.Kind() == reflect.Slice || t.Kind() == reflect.Map {
+		t = t.Elem()
+	}
+	if t.Kind() == reflect.Struct {
+		arrowIndex := 0
+		for i := 0; i < t.NumField(); i++ {
+			exclude := false
+			field := t.Field(i)
+			// Look for a parquet tag for this field
+			tag := field.Tag
+			if ptags, ok := tag.Lookup("parquet"); ok {
+				if ptags == "-" {
+					exclude = true
+				}
+			}
+			if !exclude {
+				mapping[i] = ReflectMapping{ArrowIndex: arrowIndex, NestedMappings: make(map[int]ReflectMapping)}
+				addFieldToMapping(field.Type, mapping[i].NestedMappings)
+				arrowIndex++
+			}
+		}
+	}
 }

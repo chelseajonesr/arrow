@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"math/bits"
+	"reflect"
 	"sync/atomic"
 	"unsafe"
 
@@ -1007,6 +1008,10 @@ func (b *dictionaryBuilder) AppendIndices(indices []int, valid []bool) {
 
 func (b *dictionaryBuilder) DictionarySize() int {
 	return b.memoTable.Size()
+}
+
+func (b *dictionaryBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	return fmt.Errorf("no conversion available to Dictionary")
 }
 
 type NullDictionaryBuilder struct {

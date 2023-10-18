@@ -273,6 +273,25 @@ func (b *Int64Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *Int64Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toInt64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(int64(t))
+	return nil
+}
+
 type Uint64Builder struct {
 	builder
 
@@ -510,6 +529,25 @@ func (b *Uint64Builder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *Uint64Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toUint64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(uint64(t))
+	return nil
 }
 
 type Float64Builder struct {
@@ -751,6 +789,21 @@ func (b *Float64Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *Float64Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t := v.Float()
+	b.Append(float64(t))
+	return nil
+}
+
 type Int32Builder struct {
 	builder
 
@@ -988,6 +1041,25 @@ func (b *Int32Builder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *Int32Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toInt64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(int32(t))
+	return nil
 }
 
 type Uint32Builder struct {
@@ -1229,6 +1301,25 @@ func (b *Uint32Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *Uint32Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toUint64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(uint32(t))
+	return nil
+}
+
 type Float32Builder struct {
 	builder
 
@@ -1466,6 +1557,21 @@ func (b *Float32Builder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *Float32Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t := v.Float()
+	b.Append(float32(t))
+	return nil
 }
 
 type Int16Builder struct {
@@ -1707,6 +1813,25 @@ func (b *Int16Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *Int16Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toInt64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(int16(t))
+	return nil
+}
+
 type Uint16Builder struct {
 	builder
 
@@ -1944,6 +2069,25 @@ func (b *Uint16Builder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *Uint16Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toUint64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(uint16(t))
+	return nil
 }
 
 type Int8Builder struct {
@@ -2185,6 +2329,25 @@ func (b *Int8Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *Int8Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toInt64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(int8(t))
+	return nil
+}
+
 type Uint8Builder struct {
 	builder
 
@@ -2422,6 +2585,25 @@ func (b *Uint8Builder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *Uint8Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toUint64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(uint8(t))
+	return nil
 }
 
 type Time32Builder struct {
@@ -2664,6 +2846,25 @@ func (b *Time32Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *Time32Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toInt64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(arrow.Time32(t))
+	return nil
+}
+
 type Time64Builder struct {
 	builder
 
@@ -2902,6 +3103,25 @@ func (b *Time64Builder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *Time64Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toInt64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(arrow.Time64(t))
+	return nil
 }
 
 type Date32Builder struct {
@@ -3143,6 +3363,25 @@ func (b *Date32Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *Date32Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toInt64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(arrow.Date32(t))
+	return nil
+}
+
 type Date64Builder struct {
 	builder
 
@@ -3380,6 +3619,25 @@ func (b *Date64Builder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *Date64Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toInt64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(arrow.Date64(t))
+	return nil
 }
 
 type DurationBuilder struct {
@@ -3645,6 +3903,25 @@ func (b *DurationBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *DurationBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	t, err := toInt64(v)
+	if err != nil {
+		return err
+	}
+
+	b.Append(arrow.Duration(t))
+	return nil
+}
+
 var (
 	_ Builder = (*Int64Builder)(nil)
 	_ Builder = (*Uint64Builder)(nil)
@@ -3662,3 +3939,25 @@ var (
 	_ Builder = (*Date64Builder)(nil)
 	_ Builder = (*DurationBuilder)(nil)
 )
+
+// Since reflect.Value.Int doesn't accept any uint, use this to allow converting a uint to an int
+func toInt64(v reflect.Value) (int64, error) {
+	if v.CanInt() {
+		return v.Int(), nil
+	}
+	if v.CanUint() {
+		return int64(v.Uint()), nil
+	}
+	return 0, fmt.Errorf("unsupported conversion: %s to an integer type", v.Kind())
+}
+
+// Since reflect.Value.Uint doesn't accept any int, use this to allow converting an int to a uint
+func toUint64(v reflect.Value) (uint64, error) {
+	if v.CanUint() {
+		return v.Uint(), nil
+	}
+	if v.CanInt() {
+		return uint64(v.Int()), nil
+	}
+	return 0, fmt.Errorf("unsupported conversion: %s to an unsigned integer type", v.Kind())
+}

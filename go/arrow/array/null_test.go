@@ -17,6 +17,7 @@
 package array_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -36,15 +37,16 @@ func TestNullArray(t *testing.T) {
 	b.AppendNulls(2)
 	b.AppendEmptyValue()
 	b.AppendEmptyValues(2)
+	b.AppendReflectValue(reflect.ValueOf(nil), nil)
 
 	arr1 := b.NewArray().(*array.Null)
 	defer arr1.Release()
 
-	if got, want := arr1.Len(), 6; got != want {
+	if got, want := arr1.Len(), 7; got != want {
 		t.Fatalf("invalid null array length: got=%d, want=%d", got, want)
 	}
 
-	if got, want := arr1.NullN(), 6; got != want {
+	if got, want := arr1.NullN(), 7; got != want {
 		t.Fatalf("invalid number of nulls: got=%d, want=%d", got, want)
 	}
 

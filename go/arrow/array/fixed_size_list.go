@@ -19,6 +19,7 @@ package array
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync/atomic"
 
@@ -364,6 +365,32 @@ func (b *FixedSizeListBuilder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *FixedSizeListBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	if v.Kind() == reflect.Slice && v.IsNil() {
+		b.AppendNull()
+		return nil
+	}
+
+	b.Append(true)
+	b.values.Reserve(v.Len())
+	for i := 0; i < v.Len(); i++ {
+		err := b.values.AppendReflectValue(v.Index(i), reflectMapping)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 var (

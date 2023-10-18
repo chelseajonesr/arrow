@@ -18,6 +18,7 @@ package array
 
 import (
 	"fmt"
+	"reflect"
 	"sync/atomic"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -69,6 +70,10 @@ type Builder interface {
 
 	// AppendValueFromString adds a new value from a string. Inverse of array.ValueStr(i int) string
 	AppendValueFromString(string) error
+
+	// AppendReflectValue adds a new value from a Go reflect value
+	// reflectMapping is optional and allows for skipping fields in Go structs
+	AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error
 
 	// Reserve ensures there is enough space for appending n elements
 	// by checking the capacity and calling Resize if necessary.

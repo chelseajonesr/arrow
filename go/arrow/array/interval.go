@@ -19,6 +19,7 @@ package array
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -340,6 +341,20 @@ func (b *MonthIntervalBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *MonthIntervalBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	b.Append(arrow.MonthInterval(v.Int()))
+	return nil
+}
+
 // A type which represents an immutable sequence of arrow.DayTimeInterval values.
 type DayTimeInterval struct {
 	array
@@ -637,6 +652,10 @@ func (b *DayTimeIntervalBuilder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *DayTimeIntervalBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	return fmt.Errorf("no conversion available to DayTimeInterval")
 }
 
 // A type which represents an immutable sequence of arrow.DayTimeInterval values.
@@ -940,6 +959,10 @@ func (b *MonthDayNanoIntervalBuilder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *MonthDayNanoIntervalBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	return fmt.Errorf("no conversion available to MonthDayNanoInterval")
 }
 
 var (

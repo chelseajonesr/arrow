@@ -19,6 +19,7 @@
 package array_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -168,6 +169,30 @@ func TestInt64Builder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, a.Int64Values())
 
 	a.Release()
+}
+
+func TestInt64Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewInt64Builder(mem)
+	defer ab.Release()
+
+	exp := []int64{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewInt64Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Int64Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewInt64Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
 }
 
 func TestInt64Builder_Empty(t *testing.T) {
@@ -372,6 +397,30 @@ func TestUint64Builder_AppendValues(t *testing.T) {
 	a.Release()
 }
 
+func TestUint64Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewUint64Builder(mem)
+	defer ab.Release()
+
+	exp := []uint64{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewUint64Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Uint64Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewUint64Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
+}
+
 func TestUint64Builder_Empty(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
@@ -572,6 +621,30 @@ func TestFloat64Builder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, a.Float64Values())
 
 	a.Release()
+}
+
+func TestFloat64Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewFloat64Builder(mem)
+	defer ab.Release()
+
+	exp := []float64{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewFloat64Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Float64Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewFloat64Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
 }
 
 func TestFloat64Builder_Empty(t *testing.T) {
@@ -776,6 +849,30 @@ func TestInt32Builder_AppendValues(t *testing.T) {
 	a.Release()
 }
 
+func TestInt32Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewInt32Builder(mem)
+	defer ab.Release()
+
+	exp := []int32{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewInt32Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Int32Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewInt32Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
+}
+
 func TestInt32Builder_Empty(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
@@ -976,6 +1073,30 @@ func TestUint32Builder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, a.Uint32Values())
 
 	a.Release()
+}
+
+func TestUint32Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewUint32Builder(mem)
+	defer ab.Release()
+
+	exp := []uint32{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewUint32Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Uint32Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewUint32Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
 }
 
 func TestUint32Builder_Empty(t *testing.T) {
@@ -1180,6 +1301,30 @@ func TestFloat32Builder_AppendValues(t *testing.T) {
 	a.Release()
 }
 
+func TestFloat32Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewFloat32Builder(mem)
+	defer ab.Release()
+
+	exp := []float32{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewFloat32Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Float32Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewFloat32Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
+}
+
 func TestFloat32Builder_Empty(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
@@ -1380,6 +1525,30 @@ func TestInt16Builder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, a.Int16Values())
 
 	a.Release()
+}
+
+func TestInt16Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewInt16Builder(mem)
+	defer ab.Release()
+
+	exp := []int16{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewInt16Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Int16Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewInt16Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
 }
 
 func TestInt16Builder_Empty(t *testing.T) {
@@ -1584,6 +1753,30 @@ func TestUint16Builder_AppendValues(t *testing.T) {
 	a.Release()
 }
 
+func TestUint16Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewUint16Builder(mem)
+	defer ab.Release()
+
+	exp := []uint16{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewUint16Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Uint16Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewUint16Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
+}
+
 func TestUint16Builder_Empty(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
@@ -1786,6 +1979,30 @@ func TestInt8Builder_AppendValues(t *testing.T) {
 	a.Release()
 }
 
+func TestInt8Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewInt8Builder(mem)
+	defer ab.Release()
+
+	exp := []int8{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewInt8Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Int8Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewInt8Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
+}
+
 func TestInt8Builder_Empty(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
@@ -1986,6 +2203,30 @@ func TestUint8Builder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, a.Uint8Values())
 
 	a.Release()
+}
+
+func TestUint8Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewUint8Builder(mem)
+	defer ab.Release()
+
+	exp := []uint8{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewUint8Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Uint8Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewUint8Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
 }
 
 func TestUint8Builder_Empty(t *testing.T) {
@@ -2191,6 +2432,31 @@ func TestTime32Builder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, a.Time32Values())
 
 	a.Release()
+}
+
+func TestTime32Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	dtype := &arrow.Time32Type{Unit: arrow.Second}
+	ab := array.NewTime32Builder(mem, dtype)
+	defer ab.Release()
+
+	exp := []arrow.Time32{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewTime32Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Time32Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewTime32Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
 }
 
 func TestTime32Builder_Empty(t *testing.T) {
@@ -2400,6 +2666,31 @@ func TestTime64Builder_AppendValues(t *testing.T) {
 	a.Release()
 }
 
+func TestTime64Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	dtype := &arrow.Time64Type{Unit: arrow.Second}
+	ab := array.NewTime64Builder(mem, dtype)
+	defer ab.Release()
+
+	exp := []arrow.Time64{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewTime64Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Time64Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewTime64Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
+}
+
 func TestTime64Builder_Empty(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
@@ -2602,6 +2893,30 @@ func TestDate32Builder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, a.Date32Values())
 
 	a.Release()
+}
+
+func TestDate32Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewDate32Builder(mem)
+	defer ab.Release()
+
+	exp := []arrow.Date32{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewDate32Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Date32Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewDate32Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
 }
 
 func TestDate32Builder_Empty(t *testing.T) {
@@ -2813,6 +3128,30 @@ func TestDate64Builder_AppendValues(t *testing.T) {
 	a.Release()
 }
 
+func TestDate64Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewDate64Builder(mem)
+	defer ab.Release()
+
+	exp := []arrow.Date64{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewDate64Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.Date64Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewDate64Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
+}
+
 func TestDate64Builder_Empty(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
@@ -3016,6 +3355,31 @@ func TestDurationBuilder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, a.DurationValues())
 
 	a.Release()
+}
+
+func TestDurationBuilder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	dtype := &arrow.DurationType{Unit: arrow.Second}
+	ab := array.NewDurationBuilder(mem, dtype)
+	defer ab.Release()
+
+	exp := []arrow.Duration{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.NewDurationArray()
+	defer a.Release()
+	assert.Equal(t, exp, a.DurationValues())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.NewDurationArray()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
 }
 
 func TestDurationBuilder_Empty(t *testing.T) {

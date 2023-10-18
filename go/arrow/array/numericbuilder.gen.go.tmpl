@@ -438,6 +438,38 @@ func (b *{{.Name}}Builder) UnmarshalJSON(data []byte) error {
 
 	return b.Unmarshal(dec)
 }
+
+func (b *{{.Name}}Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+{{if or (eq .Name "Float32") (eq .Name "Float64") -}}
+	t := v.Float()
+{{else if eq (printf "%.1s" .Name) "U" -}}
+	t, err := toUint64(v)
+{{else -}}
+	t, err := toInt64(v)
+{{end -}}
+{{if and (ne .Name "Float32") (ne .Name "Float64") -}}
+	if err != nil {
+			return err
+	}
+
+{{end -}}
+{{if or (eq .Name "Date32") (eq .Name "Date64") (eq .Name "Time32") (eq .Name "Time64") (eq .Name "Duration") -}}
+	b.Append({{.QualifiedType}}(t))
+{{else -}}
+	b.Append({{.name}}(t))
+{{end -}}
+	return nil
+}
+
 {{end}}
 
 var (
@@ -445,3 +477,25 @@ var (
 	_ Builder = (*{{.Name}}Builder)(nil)
 {{- end}}
 )
+
+// Since reflect.Value.Int doesn't accept any uint, use this to allow converting a uint to an int
+func toInt64(v reflect.Value) (int64, error) {
+	if v.CanInt() {
+		return v.Int(), nil
+	}
+	if v.CanUint() {
+		return int64(v.Uint()), nil
+	}
+	return 0, fmt.Errorf("unsupported conversion: %s to an integer type", v.Kind())
+}
+
+// Since reflect.Value.Uint doesn't accept any int, use this to allow converting an int to a uint
+func toUint64(v reflect.Value) (uint64, error) {
+	if v.CanUint() {
+		return v.Uint(), nil
+	}
+	if v.CanInt() {
+		return uint64(v.Int()), nil
+	}
+	return 0, fmt.Errorf("unsupported conversion: %s to an unsigned integer type", v.Kind())
+}

@@ -359,6 +359,27 @@ func (b *Decimal128Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *Decimal128Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	switch v.Kind() {
+	case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int:
+		b.Append(decimal128.FromI64(v.Int()))
+	case reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
+		b.Append(decimal128.FromU64(v.Uint()))
+	default:
+		return fmt.Errorf("unsupported conversion from %s to arrow.DECIMAL", v.Kind())
+	}
+	return nil
+}
+
 var (
 	_ arrow.Array = (*Decimal128)(nil)
 	_ Builder     = (*Decimal128Builder)(nil)

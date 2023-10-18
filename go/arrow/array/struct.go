@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync/atomic"
 
@@ -483,6 +484,36 @@ func (b *StructBuilder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *StructBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	b.Append(true)
+	for i := 0; i < v.NumField(); i++ {
+		if reflectMapping != nil {
+			nestedMapping, ok := (*reflectMapping).NestedMappings[i]
+			if ok {
+				err := b.FieldBuilder(nestedMapping.ArrowIndex).AppendReflectValue(v.Field(i), &nestedMapping)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			err := b.FieldBuilder(i).AppendReflectValue(v.Field(i), nil)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 var (

@@ -212,6 +212,11 @@ func (b *NullBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *NullBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	b.AppendNull()
+	return nil
+}
+
 var (
 	_ arrow.Array = (*Null)(nil)
 	_ Builder     = (*NullBuilder)(nil)

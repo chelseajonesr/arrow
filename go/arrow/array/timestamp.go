@@ -374,6 +374,20 @@ func (b *TimestampBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *TimestampBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	b.Append(arrow.Timestamp(v.Int()))
+	return nil
+}
+
 var (
 	_ arrow.Array = (*Timestamp)(nil)
 	_ Builder     = (*TimestampBuilder)(nil)

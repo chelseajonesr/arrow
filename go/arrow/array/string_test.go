@@ -148,6 +148,73 @@ func TestStringArray(t *testing.T) {
 	}
 }
 
+func TestStringBuilder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	var (
+		want    = []string{"hello", "世界", "", "bye", "", "again"}
+		valids  = []bool{true, true, true, true, false, true}
+		offsets = []int32{0, 5, 11, 11, 14, 14, 19}
+	)
+
+	sb := array.NewStringBuilder(mem)
+	defer sb.Release()
+
+	for i := 0; i < 4; i++ {
+		assert.NoError(t, sb.AppendReflectValue(reflect.ValueOf(want[i]), nil))
+	}
+
+	var ptr *string
+	assert.NoError(t, sb.AppendReflectValue(reflect.ValueOf(ptr), nil))
+	ptr = &want[5]
+	assert.NoError(t, sb.AppendReflectValue(reflect.ValueOf(ptr), nil))
+
+	if got, want := sb.Len(), len(want); got != want {
+		t.Fatalf("invalid len: got=%d, want=%d", got, want)
+	}
+
+	if got, want := sb.NullN(), 1; got != want {
+		t.Fatalf("invalid nulls: got=%d, want=%d", got, want)
+	}
+
+	arr := sb.NewStringArray()
+	defer arr.Release()
+
+	if got, want := arr.Len(), len(want); got != want {
+		t.Fatalf("invalid len: got=%d, want=%d", got, want)
+	}
+
+	if got, want := arr.NullN(), 1; got != want {
+		t.Fatalf("invalid nulls: got=%d, want=%d", got, want)
+	}
+
+	for i := range want {
+		if arr.IsNull(i) != !valids[i] {
+			t.Fatalf("arr[%d]-validity: got=%v want=%v", i, !arr.IsNull(i), valids[i])
+		}
+		switch {
+		case arr.IsNull(i):
+		default:
+			got := arr.Value(i)
+			if got != want[i] {
+				t.Fatalf("arr[%d]: got=%q, want=%q", i, got, want[i])
+			}
+		}
+
+		if got, want := arr.ValueOffset(i), int(offsets[i]); got != want {
+			t.Fatalf("arr-offset-beg[%d]: got=%d, want=%d", i, got, want)
+		}
+		if got, want := arr.ValueOffset(i+1), int(offsets[i+1]); got != want {
+			t.Fatalf("arr-offset-end[%d]: got=%d, want=%d", i+1, got, want)
+		}
+	}
+
+	if !reflect.DeepEqual(offsets, arr.ValueOffsets()) {
+		t.Fatalf("ValueOffsets got=%v, want=%v", arr.ValueOffsets(), offsets)
+	}
+}
+
 func TestStringBuilder_Empty(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
@@ -427,6 +494,73 @@ func TestLargeStringArray(t *testing.T) {
 
 	if !reflect.DeepEqual(offsets[2:5], v.ValueOffsets()) {
 		t.Fatalf("ValueOffsets got=%v, want=%v", v.ValueOffsets(), offsets[2:5])
+	}
+}
+
+func TestLargeStringBuilder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	var (
+		want    = []string{"hello", "世界", "", "bye", "", "again"}
+		valids  = []bool{true, true, true, true, false, true}
+		offsets = []int64{0, 5, 11, 11, 14, 14, 19}
+	)
+
+	sb := array.NewLargeStringBuilder(mem)
+	defer sb.Release()
+
+	for i := 0; i < 4; i++ {
+		assert.NoError(t, sb.AppendReflectValue(reflect.ValueOf(want[i]), nil))
+	}
+
+	var ptr *string
+	assert.NoError(t, sb.AppendReflectValue(reflect.ValueOf(ptr), nil))
+	ptr = &want[5]
+	assert.NoError(t, sb.AppendReflectValue(reflect.ValueOf(ptr), nil))
+
+	if got, want := sb.Len(), len(want); got != want {
+		t.Fatalf("invalid len: got=%d, want=%d", got, want)
+	}
+
+	if got, want := sb.NullN(), 1; got != want {
+		t.Fatalf("invalid nulls: got=%d, want=%d", got, want)
+	}
+
+	arr := sb.NewLargeStringArray()
+	defer arr.Release()
+
+	if got, want := arr.Len(), len(want); got != want {
+		t.Fatalf("invalid len: got=%d, want=%d", got, want)
+	}
+
+	if got, want := arr.NullN(), 1; got != want {
+		t.Fatalf("invalid nulls: got=%d, want=%d", got, want)
+	}
+
+	for i := range want {
+		if arr.IsNull(i) != !valids[i] {
+			t.Fatalf("arr[%d]-validity: got=%v want=%v", i, !arr.IsNull(i), valids[i])
+		}
+		switch {
+		case arr.IsNull(i):
+		default:
+			got := arr.Value(i)
+			if got != want[i] {
+				t.Fatalf("arr[%d]: got=%q, want=%q", i, got, want[i])
+			}
+		}
+
+		if got, want := arr.ValueOffset(i), offsets[i]; got != want {
+			t.Fatalf("arr-offset-beg[%d]: got=%d, want=%d", i, got, want)
+		}
+		if got, want := arr.ValueOffset(i+1), offsets[i+1]; got != want {
+			t.Fatalf("arr-offset-end[%d]: got=%d, want=%d", i+1, got, want)
+		}
+	}
+
+	if !reflect.DeepEqual(offsets, arr.ValueOffsets()) {
+		t.Fatalf("ValueOffsets got=%v, want=%v", arr.ValueOffsets(), offsets)
 	}
 }
 

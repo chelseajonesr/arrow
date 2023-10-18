@@ -17,6 +17,7 @@
 package array_test
 
 import (
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/apache/arrow/go/v16/arrow/array"
 	"github.com/apache/arrow/go/v16/arrow/memory"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/exp/slices"
 )
 
 func TestMapArray(t *testing.T) {
@@ -172,6 +174,100 @@ func TestMapArrayBuildIntToInt(t *testing.T) {
 	}
 
 	assert.Equal(t, "[{[0 1 2 3 4 5] [1 1 2 3 5 8]} (null) {[0 1 2 3 4 5] [(null) (null) 0 1 (null) 2]} {[] []}]", arr.String())
+}
+
+func TestMapBuilder_AppendReflectValue(t *testing.T) {
+	dt := arrow.MapOf(arrow.BinaryTypes.String, arrow.PrimitiveTypes.Int32)
+
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	b := array.NewMapBuilderWithType(mem, dt)
+	defer b.Release()
+
+	goMaps := []map[string]int32{
+		{
+			"hello": 1,
+			"world": 234,
+		},
+		nil,
+		{
+			"bye": -50,
+		},
+		{},
+	}
+
+	for _, m := range goMaps {
+		assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(m), nil))
+	}
+
+	var ptr *map[string]int32
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(ptr), nil))
+	ptr = &goMaps[0]
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(ptr), nil))
+
+	arr := b.NewMapArray()
+	defer arr.Release()
+
+	assert.Equal(t, 2, arr.NullN())
+	assert.Equal(t, len(goMaps)+2, arr.Len())
+
+	// Compare against a map built using appndValues()
+	b.Reserve(len(goMaps) + 2)
+	kb := b.KeyBuilder().(*array.StringBuilder)
+	ib := b.ItemBuilder().(*array.Int32Builder)
+
+	for _, g := range goMaps {
+		if g == nil {
+			b.AppendNull()
+		} else {
+			keys := make([]string, 0, len(g))
+			items := make([]int32, 0, len(g))
+			for k, v := range g {
+				keys = append(keys, k)
+				items = append(items, v)
+			}
+			b.Append(true)
+			kb.AppendValues(keys, nil)
+			ib.AppendValues(items, nil)
+		}
+	}
+	b.AppendNull()
+	b.Append(true)
+	for k, v := range goMaps[0] {
+		kb.Append(k)
+		ib.Append(v)
+	}
+
+	arr2 := b.NewMapArray()
+	defer arr2.Release()
+
+	assert.Equal(t, arr2.Len(), arr.Len())
+	assert.Equal(t, arr2.Offsets(), arr.Offsets())
+	for i := 0; i < arr.Len(); i++ {
+		assert.Equal(t, arr2.IsValid(i), arr.IsValid(i))
+		if arr.IsValid(i) {
+			s, e := arr.ValueOffsets(i)
+			keys := make([]string, 0, e-s)
+			keys2 := make([]string, 0, e-s)
+			items := make([]int32, 0, e-s)
+			items2 := make([]int32, 0, e-s)
+			for o := s; o < e; o++ {
+				keys = append(keys, arr.Keys().(*array.String).Value(int(o)))
+				keys2 = append(keys2, arr2.Keys().(*array.String).Value(int(o)))
+				items = append(items, arr.Items().(*array.Int32).Value(int(o)))
+				items2 = append(items2, arr2.Items().(*array.Int32).Value(int(o)))
+			}
+			slices.Sort(keys)
+			slices.Sort(keys2)
+			assert.Equal(t, keys, keys2)
+			slices.Sort(items)
+			slices.Sort(items2)
+			assert.Equal(t, items, items2)
+		}
+	}
+	assert.Equal(t, arr2.Keys(), arr.Keys())
+	assert.Equal(t, arr2.Items(), arr.Items())
 }
 
 func TestMapStringRoundTrip(t *testing.T) {

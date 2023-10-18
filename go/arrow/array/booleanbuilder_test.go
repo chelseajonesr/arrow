@@ -17,6 +17,7 @@
 package array_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/apache/arrow/go/v16/arrow/array"
@@ -55,6 +56,42 @@ func TestBooleanBuilder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, got)
 
 	a.Release()
+}
+
+func TestBooleanBuilder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	b := array.NewBooleanBuilder(mem)
+	defer b.Release()
+
+	exp := tools.Bools(1, 1, 0, 1, 1, 0)
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := b.NewBooleanArray()
+	defer a.Release()
+
+	got := make([]bool, len(exp))
+	for i := 0; i < a.Len(); i++ {
+		got[i] = a.Value(i)
+	}
+	assert.Equal(t, exp, got)
+
+	var ptr *bool
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(ptr), nil))
+	v := true
+	ptr = &v
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(ptr), nil))
+
+	a = b.NewBooleanArray()
+	defer a.Release()
+
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, false, a.IsValid(0))
+	assert.Equal(t, true, a.IsValid(1))
+	assert.Equal(t, true, a.Value(1))
 }
 
 func TestBooleanBuilder_Empty(t *testing.T) {

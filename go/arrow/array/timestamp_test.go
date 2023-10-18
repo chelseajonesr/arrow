@@ -17,6 +17,7 @@
 package array_test
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -171,6 +172,36 @@ func TestTimestampBuilder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, a.TimestampValues())
 
 	a.Release()
+}
+
+func TestTimestampBuilder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	dtype := &arrow.TimestampType{Unit: arrow.Second}
+	ab := array.NewTimestampBuilder(mem, dtype)
+	defer ab.Release()
+
+	exp := []arrow.Timestamp{0, 1, 2, 3}
+	for _, ts := range exp {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(int64(ts)), nil))
+	}
+
+	a := ab.NewTimestampArray()
+	defer a.Release()
+	assert.Equal(t, exp, a.TimestampValues())
+
+	var ptr *int64
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(ptr), nil))
+	ts := int64(4)
+	ptr = &ts
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(ptr), nil))
+
+	a = ab.NewTimestampArray()
+	defer a.Release()
+	assert.False(t, a.IsValid(0))
+	assert.True(t, a.IsValid(1))
+	assert.Equal(t, a.Value(1), arrow.Timestamp(ts))
 }
 
 func TestTimestampBuilder_Empty(t *testing.T) {

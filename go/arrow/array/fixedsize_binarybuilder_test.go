@@ -17,6 +17,7 @@
 package array
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -59,6 +60,38 @@ func TestFixedSizeBinaryBuilder(t *testing.T) {
 
 	b.Release()
 	a.Release()
+}
+
+func TestFixedSizeBinaryBuilder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	dtype := arrow.FixedSizeBinaryType{ByteWidth: 7}
+	b := NewFixedSizeBinaryBuilder(mem, &dtype)
+	defer b.Release()
+
+	values := [][]byte{
+		[]byte("7654321"),
+		nil,
+		[]byte("AZERTYU"),
+	}
+
+	for i := 0; i < len(values); i++ {
+		assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(values[i]), nil))
+	}
+	var ptr *[7]byte
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(ptr), nil))
+	var v = [7]byte{0, 1, 2, 3, 4, 5, 6}
+	ptr = &v
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(ptr), nil))
+
+	valids := []bool{true, false, true, false, true}
+
+	assert.Equal(t, len(valids), b.Len(), "unexpected Len()")
+	assert.Equal(t, 2, b.NullN(), "unexpected NullN()")
+
+	a := b.NewFixedSizeBinaryArray()
+	defer a.Release()
 }
 
 func TestFixedSizeBinaryBuilder_Empty(t *testing.T) {

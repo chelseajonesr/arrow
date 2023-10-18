@@ -18,6 +18,7 @@ package array_test
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -90,6 +91,38 @@ func TestBinaryBuilder_ReserveData(t *testing.T) {
 	assert.Zero(t, ab.NullN(), "unexpected ArrayBuilder.NullN(), NewBinaryArray did not reset state")
 }
 
+func TestBinaryBuilder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewBinaryBuilder(mem, arrow.BinaryTypes.Binary)
+	defer ab.Release()
+
+	exp := [][]byte{[]byte("foo"), []byte("bar"), nil, []byte("sydney"), []byte("cameron")}
+	for _, v := range exp {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(v), nil))
+	}
+	assert.Equal(t, len(exp), ab.Len(), "unexpected Len()")
+	assert.Equal(t, 1, ab.NullN(), "unexpected NullN()")
+
+	for i, v := range exp {
+		if v == nil {
+			v = []byte{}
+		}
+		assert.Equal(t, v, ab.Value(i), "unexpected BinaryArrayBuilder.Value(%d)", i)
+	}
+
+	var v *[]byte
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(v), nil))
+	assert.Equal(t, []byte{}, ab.Value(5), "unexpected BinaryArrayBuilder.Value(%d)", 5)
+	v = &exp[0]
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(v), nil))
+	assert.Equal(t, exp[0], ab.Value(6), "unexpected BinaryArrayBuilder.Value(%d)", 6)
+	s := "12345"
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(s), nil))
+	assert.Equal(t, []byte(s), ab.Value(7), "unexpected BinaryArrayBuilder.Value(%d)", 7)
+}
+
 func TestBinaryBuilderLarge(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
@@ -148,4 +181,37 @@ func TestBinaryBuilderLarge_ReserveData(t *testing.T) {
 	assert.Zero(t, ab.Len(), "unexpected ArrayBuilder.Len(), NewBinaryArray did not reset state")
 	assert.Zero(t, ab.Cap(), "unexpected ArrayBuilder.Cap(), NewBinaryArray did not reset state")
 	assert.Zero(t, ab.NullN(), "unexpected ArrayBuilder.NullN(), NewBinaryArray did not reset state")
+}
+
+func TestBinaryBuilderLarge_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewBinaryBuilder(mem, arrow.BinaryTypes.LargeBinary)
+	defer ab.Release()
+
+	exp := [][]byte{[]byte("foo"), []byte("bar"), nil, []byte("sydney"), []byte("cameron")}
+
+	for _, v := range exp {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(v), nil))
+	}
+	assert.Equal(t, len(exp), ab.Len(), "unexpected Len()")
+	assert.Equal(t, 1, ab.NullN(), "unexpected NullN()")
+
+	for i, v := range exp {
+		if v == nil {
+			v = []byte{}
+		}
+		assert.Equal(t, v, ab.Value(i), "unexpected BinaryArrayBuilder.Value(%d)", i)
+	}
+
+	var v *[]byte
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(v), nil))
+	assert.Equal(t, []byte{}, ab.Value(5), "unexpected BinaryArrayBuilder.Value(%d)", 5)
+	v = &exp[0]
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(v), nil))
+	assert.Equal(t, exp[0], ab.Value(6), "unexpected BinaryArrayBuilder.Value(%d)", 6)
+	s := "12345"
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(s), nil))
+	assert.Equal(t, []byte(s), ab.Value(7), "unexpected BinaryArrayBuilder.Value(%d)", 7)
 }

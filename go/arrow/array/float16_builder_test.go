@@ -17,6 +17,7 @@
 package array_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/apache/arrow/go/v16/arrow/array"
@@ -80,6 +81,50 @@ func TestNewFloat16Builder(t *testing.T) {
 	assert.Len(t, a.Values(), 2)
 
 	a.Release()
+	ab.Release()
+}
+
+func TestFloat16Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewFloat16Builder(mem)
+	defer ab.Release()
+
+	goPrimitives := []any{
+		float64(-1.2),
+		float64(1234.5),
+		float32(12),
+		nil,
+		float32(-5432.1),
+		nil,
+		float32(-20),
+	}
+	want := make([]float16.Num, len(goPrimitives)+2)
+	for i := 0; i < len(goPrimitives); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(goPrimitives[i]), nil))
+		switch t := goPrimitives[i].(type) {
+		case float64:
+			want[i] = float16.New(float32(t))
+		case float32:
+			want[i] = float16.New(t)
+		}
+	}
+	assert.Equal(t, 7, ab.Len(), "unexpected Len()")
+	assert.Equal(t, 2, ab.NullN(), "unexpected NullN()")
+
+	var ptr *float64
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(ptr), nil))
+	v := float64(22.5)
+	ptr = &v
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(ptr), nil))
+	want[len(goPrimitives)+1] = float16.New(float32(v))
+
+	a := ab.NewArray().(*array.Float16)
+	defer a.Release()
+
+	assert.Equal(t, 3, a.NullN(), "unexpected null count")
+	assert.Equal(t, want, a.Values(), "unexpected float16 values")
 }
 
 func TestFloat16Builder_Empty(t *testing.T) {

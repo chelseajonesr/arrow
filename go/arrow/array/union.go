@@ -1105,6 +1105,10 @@ func (b *SparseUnionBuilder) UnmarshalOne(dec *json.Decoder) error {
 	return nil
 }
 
+func (b *SparseUnionBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	return fmt.Errorf("no conversion available to SparseUnion")
+}
+
 // DenseUnionBuilder is used to build a Dense Union array using the Append
 // methods. You can also add new types to the union on the fly by using
 // AppendChild.
@@ -1356,6 +1360,10 @@ func (b *DenseUnionBuilder) UnmarshalOne(dec *json.Decoder) error {
 		}
 	}
 	return nil
+}
+
+func (b *DenseUnionBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	return fmt.Errorf("no conversion available to DenseUnion")
 }
 
 var (

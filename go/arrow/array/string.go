@@ -524,6 +524,20 @@ func (b *StringBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *StringBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	b.Append(v.String())
+	return nil
+}
+
 // A LargeStringBuilder is used to build a LargeString array using the Append methods.
 // LargeString is for when you need the offset buffer to be 64-bit integers
 // instead of 32-bit integers.
@@ -692,6 +706,20 @@ func (b *StringViewBuilder) NewStringViewArray() (a *StringView) {
 	a = NewStringViewData(data)
 	data.Release()
 	return
+}
+
+func (b *LargeStringBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	b.Append(v.String())
+	return nil
 }
 
 type StringLikeBuilder interface {

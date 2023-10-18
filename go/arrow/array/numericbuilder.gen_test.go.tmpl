@@ -17,6 +17,7 @@
 package array_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -201,6 +202,35 @@ func Test{{.Name}}Builder_AppendValues(t *testing.T) {
 	assert.Equal(t, exp, a.{{.Name}}Values())
 
 	a.Release()
+}
+
+func Test{{.Name}}Builder_AppendReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+{{if .Opt.Parametric -}}
+	dtype := &arrow.{{.Name}}Type{Unit: arrow.Second}
+	ab := array.New{{.Name}}Builder(mem, dtype)
+{{else}}
+	ab := array.New{{.Name}}Builder(mem)
+{{end -}}
+	defer ab.Release()
+
+	exp := []{{or .QualifiedType .Type}}{0, 1, 2, 3}
+	for i := 0; i < len(exp); i++ {
+		assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(exp[i]), nil))
+	}
+	a := ab.New{{.Name}}Array()
+	defer a.Release()
+	assert.Equal(t, exp, a.{{.Name}}Values())
+
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, ab.AppendReflectValue(reflect.ValueOf(&exp[0]), nil))
+	a = ab.New{{.Name}}Array()
+	defer a.Release()
+	assert.Equal(t, 1, a.NullN())
+	assert.Equal(t, 2, a.Len())
+	assert.Equal(t, exp[0], a.Value(1))
 }
 
 func Test{{.Name}}Builder_Empty(t *testing.T) {

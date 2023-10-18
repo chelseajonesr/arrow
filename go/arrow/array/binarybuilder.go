@@ -600,7 +600,6 @@ func (b *BinaryViewBuilder) AppendValueFromString(s string) error {
 		b.AppendNull()
 		return nil
 	}
-
 	if b.dtype.IsUtf8() {
 		b.Append([]byte(s))
 		return nil
@@ -637,6 +636,30 @@ func (b *BinaryViewBuilder) UnmarshalOne(dec *json.Decoder) error {
 			Type:   reflect.TypeOf([]byte{}),
 			Offset: dec.InputOffset(),
 		}
+	}
+	return nil
+}
+
+func (b *BinaryBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+	switch v.Kind() {
+	case reflect.String:
+		b.AppendString(v.String())
+	case reflect.Slice:
+		if v.IsNil() {
+			b.AppendNull()
+		} else {
+			b.Append(v.Bytes())
+		}
+	default:
+		b.Append(v.Bytes())
 	}
 	return nil
 }

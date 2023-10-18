@@ -543,3 +543,30 @@ func TestRecordBuilderUnmarshalJSONExtraFields(t *testing.T) {
 
 	assert.Truef(t, array.RecordEqual(rec1, rec2), "expected: %s\nactual: %s", rec1, rec2)
 }
+
+func TestReflectMappingFromStruct(t *testing.T) {
+	type innerStruct struct {
+		I1 int32
+		I2 float32 `parquet:"-"`
+		I3 float64
+	}
+
+	type outerStruct struct {
+		O1 string
+		O2 []innerStruct
+		O3 int64
+	}
+
+	m := array.ReflectMappingFromStruct[outerStruct]()
+
+	expectedMapping := array.ReflectMapping{ArrowIndex: 0, NestedMappings: map[int]array.ReflectMapping{
+		0: {ArrowIndex: 0, NestedMappings: map[int]array.ReflectMapping{}},
+		1: {ArrowIndex: 1, NestedMappings: map[int]array.ReflectMapping{
+			0: {ArrowIndex: 0, NestedMappings: map[int]array.ReflectMapping{}},
+			2: {ArrowIndex: 1, NestedMappings: map[int]array.ReflectMapping{}}},
+		},
+		2: {ArrowIndex: 2, NestedMappings: map[int]array.ReflectMapping{}},
+	}}
+
+	assert.True(t, reflect.DeepEqual(m, expectedMapping))
+}

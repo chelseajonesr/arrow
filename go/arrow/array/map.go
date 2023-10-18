@@ -19,6 +19,7 @@ package array
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 
 	"github.com/apache/arrow/go/v16/arrow"
 	"github.com/apache/arrow/go/v16/arrow/memory"
@@ -352,6 +353,50 @@ func (b *MapBuilder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *MapBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	if v.Kind() != reflect.Map {
+		return fmt.Errorf("unsupported conversion from %s to map", v.Kind())
+	}
+
+	if v.IsNil() {
+		b.AppendNull()
+		return nil
+	}
+
+	if v.Len() == 0 {
+		b.AppendEmptyValue()
+		return nil
+	}
+
+	b.keyBuilder.Reserve(v.Len())
+	b.itemBuilder.Reserve(v.Len())
+	b.Append(true)
+
+	iter := v.MapRange()
+	for iter.Next() {
+		k := iter.Key()
+		val := iter.Value()
+		err := b.keyBuilder.AppendReflectValue(k, reflectMapping)
+		if err != nil {
+			return err
+		}
+		err = b.itemBuilder.AppendReflectValue(val, reflectMapping)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 var (

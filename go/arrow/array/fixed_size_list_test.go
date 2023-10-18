@@ -217,6 +217,43 @@ func TestFixedSizeListArraySlice(t *testing.T) {
 	}
 }
 
+func TestFixedSizeListArrayAppendReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	const N = 3
+	var (
+		vs      = [][N]int32{{0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {9, -9, -8}}
+		isValid = []bool{true, true, true, true, false, false, true}
+	)
+
+	lb := array.NewFixedSizeListBuilder(pool, N, arrow.PrimitiveTypes.Int32)
+	defer lb.Release()
+
+	for _, v := range vs {
+		assert.NoError(t, lb.AppendReflectValue(reflect.ValueOf(v), nil))
+	}
+
+	var nilVal []int32
+	assert.NoError(t, lb.AppendReflectValue(reflect.ValueOf(nilVal), nil))
+
+	var ptr *[3]int32
+	assert.NoError(t, lb.AppendReflectValue(reflect.ValueOf(ptr), nil))
+	ptr = &vs[0]
+	assert.NoError(t, lb.AppendReflectValue(reflect.ValueOf(ptr), nil))
+
+	arr := lb.NewArray().(*array.FixedSizeList)
+	defer arr.Release()
+
+	assert.Equal(t, arr.Len(), len(isValid))
+	assert.Equal(t, arr.NullN(), 2)
+
+	want := `[[0 1 2] [3 4 5] [6 7 8] [9 -9 -8] (null) (null) [0 1 2]]`
+	if got, want := arr.String(), want; got != want {
+		t.Fatalf("got=%q, want=%q", got, want)
+	}
+}
+
 func TestFixedSizeListStringRoundTrip(t *testing.T) {
 	// 1. create array
 	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())

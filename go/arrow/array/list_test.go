@@ -430,6 +430,83 @@ func TestListViewArrayBulkAppend(t *testing.T) {
 	}
 }
 
+func TestListArrayAppendReflectValue(t *testing.T) {
+	tests := []struct {
+		typeID  arrow.Type
+		offsets interface{}
+		sizes   interface{}
+		dt      arrow.DataType
+	}{
+		{arrow.LIST, []int32{0, 3, 3, 3, 7, 7, 10}, nil, arrow.ListOf(arrow.PrimitiveTypes.Int32)},
+		{arrow.LARGE_LIST, []int64{0, 3, 3, 3, 7, 7, 10}, nil, arrow.LargeListOf(arrow.PrimitiveTypes.Int32)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.typeID.String(), func(t *testing.T) {
+			pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+			defer pool.AssertSize(t, 0)
+
+			var (
+				vs      = [][]int32{{0, 1, 2}, nil, {}, {3, 4, 5, 6}}
+				flatVs  = []int32{0, 1, 2, 3, 4, 5, 6, 0, 1, 2}
+				lengths = []int{3, 0, 0, 4, 0, 3}
+				isValid = []bool{true, false, true, true, false, true}
+			)
+
+			lb := array.NewBuilder(pool, tt.dt).(array.VarLenListLikeBuilder)
+			defer lb.Release()
+
+			for i := 0; i < len(vs); i++ {
+				assert.NoError(t, lb.AppendReflectValue(reflect.ValueOf(vs[i]), nil))
+			}
+
+			var ptr *[]int32
+			assert.NoError(t, lb.AppendReflectValue(reflect.ValueOf(ptr), nil))
+			ptr = &vs[0]
+			assert.NoError(t, lb.AppendReflectValue(reflect.ValueOf(ptr), nil))
+
+			arr := lb.NewArray().(array.VarLenListLike)
+			defer arr.Release()
+
+			if got, want := arr.DataType().ID(), tt.typeID; got != want {
+				t.Fatalf("got=%v, want=%v", got, want)
+			}
+
+			if got, want := arr.Len(), len(isValid); got != want {
+				t.Fatalf("got=%d, want=%d", got, want)
+			}
+
+			for i := range lengths {
+				if got, want := arr.IsValid(i), isValid[i]; got != want {
+					t.Fatalf("got[%d]=%v, want[%d]=%v", i, got, i, want)
+				}
+				if got, want := arr.IsNull(i), !isValid[i]; got != want {
+					t.Fatalf("got[%d]=%v, want[%d]=%v", i, got, i, want)
+				}
+			}
+
+			var gotOffsets interface{}
+			switch tt.typeID {
+			case arrow.LIST:
+				arr := arr.(*array.List)
+				gotOffsets = arr.Offsets()
+			case arrow.LARGE_LIST:
+				arr := arr.(*array.LargeList)
+				gotOffsets = arr.Offsets()
+			}
+
+			if !reflect.DeepEqual(gotOffsets, tt.offsets) {
+				t.Fatalf("got=%v, want=%v", gotOffsets, tt.offsets)
+			}
+
+			varr := arr.ListValues().(*array.Int32)
+			if got, want := varr.Int32Values(), flatVs; !reflect.DeepEqual(got, want) {
+				t.Fatalf("got=%v, want=%v", got, want)
+			}
+		})
+	}
+}
+
 func TestListArraySlice(t *testing.T) {
 	tests := []struct {
 		typeID  arrow.Type
