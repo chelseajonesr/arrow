@@ -439,7 +439,7 @@ func (b *{{.Name}}Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *{{.Name}}Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *{{.Name}}Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}

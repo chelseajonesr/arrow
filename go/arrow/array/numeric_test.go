@@ -153,6 +153,70 @@ func TestUnmarshalSpecialFloat(t *testing.T) {
 	assert.True(t, math.IsInf(float64(arr.Value(2)), -1), arr.Value(2))
 }
 
+func TestFloatsSetReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab64 := array.NewFloat64Builder(mem)
+	defer ab64.Release()
+	ab32 := array.NewFloat32Builder(mem)
+	defer ab32.Release()
+	var (
+		values = []float64{1, 2, -3, 0, 5}
+		valid  = []bool{true, true, true, false, true}
+	)
+
+	for i, v := range values {
+		if valid[i] {
+			ab64.Append(v)
+			ab32.Append(float32(v))
+		} else {
+			ab64.AppendNull()
+			ab32.AppendNull()
+		}
+	}
+
+	arr64 := ab64.NewFloat64Array()
+	defer arr64.Release()
+	arr32 := ab32.NewFloat32Array()
+	defer arr32.Release()
+
+	var aFloat64 float64
+	var aFloat32 float32
+	var aPtr *float64
+	var aSlice = make([]float64, 0)
+
+	for i, v := range values {
+		arr64.SetReflectValue(reflect.ValueOf(&aFloat64), i, nil)
+		arr64.SetReflectValue(reflect.ValueOf(&aFloat32), i, nil)
+		arr64.SetReflectValue(reflect.ValueOf(&aPtr), i, nil)
+		assert.Equal(t, v, aFloat64)
+		assert.Equal(t, float32(v), aFloat32)
+		if valid[i] {
+			assert.Equal(t, v, *aPtr)
+			assert.Panics(t, func() {
+				arr64.SetReflectValue(reflect.ValueOf(&aSlice), i, nil)
+			})
+			assert.Panics(t, func() {
+				arr32.SetReflectValue(reflect.ValueOf(&aSlice), i, nil)
+			})
+		} else {
+			assert.Nil(t, aPtr)
+		}
+
+		arr32.SetReflectValue(reflect.ValueOf(&aFloat64), i, nil)
+		arr32.SetReflectValue(reflect.ValueOf(&aFloat32), i, nil)
+		arr32.SetReflectValue(reflect.ValueOf(&aPtr), i, nil)
+		assert.Equal(t, v, aFloat64)
+		assert.Equal(t, float32(v), aFloat32)
+		if valid[i] {
+			assert.Equal(t, v, *aPtr)
+		} else {
+			assert.Nil(t, aPtr)
+		}
+	}
+}
+
 func TestNewTime32Data(t *testing.T) {
 	data := []arrow.Time32{
 		arrow.Time32(1),
@@ -280,6 +344,53 @@ func TestTime32SliceDataWithNull(t *testing.T) {
 
 	if got, want := slice.Time32Values(), sub; !reflect.DeepEqual(got, want) {
 		t.Fatalf("got=%v, want=%v", got, want)
+	}
+}
+
+func TestTime32SetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	var (
+		valids = []bool{true, true, true, false, true, true}
+		vs     = []arrow.Time32{
+			arrow.Time32(1),
+			arrow.Time32(2),
+			arrow.Time32(3),
+			arrow.Time32(0),
+			arrow.Time32(4),
+			arrow.Time32(5),
+		}
+	)
+
+	dtype := arrow.FixedWidthTypes.Time32s
+	b := array.NewTime32Builder(pool, dtype.(*arrow.Time32Type))
+	defer b.Release()
+
+	b.AppendValues(vs, valids)
+
+	arr := b.NewArray().(*array.Time32)
+	defer arr.Release()
+
+	var anInt32 int32
+	var anInt64 int64
+	var aUint32 uint32
+	var aPtr *int32
+
+	for i, v := range vs {
+		arr.SetReflectValue(reflect.ValueOf(&anInt32), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&anInt64), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aUint32), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aPtr), i, nil)
+
+		assert.Equal(t, int32(v), anInt32)
+		assert.Equal(t, int64(v), anInt64)
+		assert.Equal(t, uint32(v), aUint32)
+		if valids[i] {
+			assert.Equal(t, int32(v), *aPtr)
+		} else {
+			assert.Nil(t, aPtr)
+		}
 	}
 }
 
@@ -413,6 +524,53 @@ func TestTime64SliceDataWithNull(t *testing.T) {
 	}
 }
 
+func TestTime64SetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	var (
+		valids = []bool{true, true, true, false, true, true}
+		vs     = []arrow.Time64{
+			arrow.Time64(1),
+			arrow.Time64(2),
+			arrow.Time64(3),
+			arrow.Time64(0),
+			arrow.Time64(4),
+			arrow.Time64(5),
+		}
+	)
+
+	dtype := arrow.FixedWidthTypes.Time64ns
+	b := array.NewTime64Builder(pool, dtype.(*arrow.Time64Type))
+	defer b.Release()
+
+	b.AppendValues(vs, valids)
+
+	arr := b.NewArray().(*array.Time64)
+	defer arr.Release()
+
+	var anInt32 int32
+	var anInt64 int64
+	var aUint32 uint32
+	var aPtr *int32
+
+	for i, v := range vs {
+		arr.SetReflectValue(reflect.ValueOf(&anInt32), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&anInt64), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aUint32), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aPtr), i, nil)
+
+		assert.Equal(t, int32(v), anInt32)
+		assert.Equal(t, int64(v), anInt64)
+		assert.Equal(t, uint32(v), aUint32)
+		if valids[i] {
+			assert.Equal(t, int32(v), *aPtr)
+		} else {
+			assert.Nil(t, aPtr)
+		}
+	}
+}
+
 func TestNewDate32Data(t *testing.T) {
 	exp := []arrow.Date32{1, 2, 4, 8, 16}
 
@@ -520,6 +678,52 @@ func TestDate32SliceDataWithNull(t *testing.T) {
 
 	if got, want := slice.Date32Values(), sub; !reflect.DeepEqual(got, want) {
 		t.Fatalf("got=%v, want=%v", got, want)
+	}
+}
+
+func TestDate32SetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	var (
+		valids = []bool{true, true, true, false, true, true}
+		vs     = []arrow.Date32{
+			arrow.Date32(1),
+			arrow.Date32(2),
+			arrow.Date32(3),
+			arrow.Date32(0),
+			arrow.Date32(4),
+			arrow.Date32(5),
+		}
+	)
+
+	b := array.NewDate32Builder(pool)
+	defer b.Release()
+
+	b.AppendValues(vs, valids)
+
+	arr := b.NewArray().(*array.Date32)
+	defer arr.Release()
+
+	var anInt32 int32
+	var anInt64 int64
+	var aUint32 uint32
+	var aPtr *int32
+
+	for i, v := range vs {
+		arr.SetReflectValue(reflect.ValueOf(&anInt32), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&anInt64), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aUint32), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aPtr), i, nil)
+
+		assert.Equal(t, int32(v), anInt32)
+		assert.Equal(t, int64(v), anInt64)
+		assert.Equal(t, uint32(v), aUint32)
+		if valids[i] {
+			assert.Equal(t, int32(v), *aPtr)
+		} else {
+			assert.Nil(t, aPtr)
+		}
 	}
 }
 
@@ -633,6 +837,52 @@ func TestDate64SliceDataWithNull(t *testing.T) {
 	}
 }
 
+func TestDate64SetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	var (
+		valids = []bool{true, true, true, false, true, true}
+		vs     = []arrow.Date64{
+			arrow.Date64(1),
+			arrow.Date64(2),
+			arrow.Date64(3),
+			arrow.Date64(0),
+			arrow.Date64(4),
+			arrow.Date64(5),
+		}
+	)
+
+	b := array.NewDate64Builder(pool)
+	defer b.Release()
+
+	b.AppendValues(vs, valids)
+
+	arr := b.NewArray().(*array.Date64)
+	defer arr.Release()
+
+	var anInt32 int32
+	var anInt64 int64
+	var aUint32 uint32
+	var aPtr *int32
+
+	for i, v := range vs {
+		arr.SetReflectValue(reflect.ValueOf(&anInt32), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&anInt64), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aUint32), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aPtr), i, nil)
+
+		assert.Equal(t, int32(v), anInt32)
+		assert.Equal(t, int64(v), anInt64)
+		assert.Equal(t, uint32(v), aUint32)
+		if valids[i] {
+			assert.Equal(t, int32(v), *aPtr)
+		} else {
+			assert.Nil(t, aPtr)
+		}
+	}
+}
+
 func TestInt64MarshalJSON(t *testing.T) {
 	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer pool.AssertSize(t, 0)
@@ -689,4 +939,127 @@ func TestUInt64MarshalJSON(t *testing.T) {
 	if got != want {
 		t.Fatalf("got=%s, want=%s", got, want)
 	}
+}
+
+func TestDurationSetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	var (
+		valids = []bool{true, true, true, false, true, true}
+		vs     = []arrow.Duration{
+			arrow.Duration(1),
+			arrow.Duration(2),
+			arrow.Duration(3),
+			arrow.Duration(0),
+			arrow.Duration(4),
+			arrow.Duration(5),
+		}
+	)
+
+	dtype := arrow.FixedWidthTypes.Duration_s
+	b := array.NewDurationBuilder(pool, dtype.(*arrow.DurationType))
+	defer b.Release()
+
+	b.AppendValues(vs, valids)
+
+	arr := b.NewArray().(*array.Duration)
+	defer arr.Release()
+
+	var anInt32 int32
+	var anInt64 int64
+	var aUint32 uint32
+	var aPtr *int32
+
+	for i, v := range vs {
+		arr.SetReflectValue(reflect.ValueOf(&anInt32), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&anInt64), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aUint32), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aPtr), i, nil)
+
+		assert.Equal(t, int32(v), anInt32)
+		assert.Equal(t, int64(v), anInt64)
+		assert.Equal(t, uint32(v), aUint32)
+		if valids[i] {
+			assert.Equal(t, int32(v), *aPtr)
+		} else {
+			assert.Nil(t, aPtr)
+		}
+	}
+}
+
+func TestIntsSetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	builders := make([]array.Builder, 0, 8)
+	builders = append(builders, array.NewInt16Builder(pool))
+	builders = append(builders, array.NewInt32Builder(pool))
+	builders = append(builders, array.NewInt64Builder(pool))
+	builders = append(builders, array.NewInt8Builder(pool))
+	builders = append(builders, array.NewUint16Builder(pool))
+	builders = append(builders, array.NewUint32Builder(pool))
+	builders = append(builders, array.NewUint64Builder(pool))
+	builders = append(builders, array.NewUint8Builder(pool))
+	for i := range builders {
+		defer builders[i].Release()
+	}
+
+	var (
+		values     = []int{1, 2, -3, 0, 5}
+		uintValues = []int{1, 2, 3, 0, 5}
+		valid      = []bool{true, true, true, false, true}
+	)
+
+	for ib, b := range builders {
+		var builderValues []int
+		if ib < 4 {
+			builderValues = values
+		} else {
+			builderValues = uintValues
+		}
+		for i, v := range builderValues {
+			if valid[i] {
+				assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(v), nil))
+			} else {
+				b.AppendNull()
+			}
+		}
+
+		arr := b.NewArray()
+		defer arr.Release()
+
+		var anInt int
+		var anInt8 int8
+		var anInt64 int64
+		var aUint32 uint32
+		var aBool bool
+		var aPtr *uint64
+		var aStruct struct {
+			a int
+		}
+
+		for i, v := range builderValues {
+			arr.SetReflectValue(reflect.ValueOf(&anInt), i, nil)
+			arr.SetReflectValue(reflect.ValueOf(&anInt8), i, nil)
+			arr.SetReflectValue(reflect.ValueOf(&anInt64), i, nil)
+			arr.SetReflectValue(reflect.ValueOf(&aUint32), i, nil)
+			arr.SetReflectValue(reflect.ValueOf(&aBool), i, nil)
+			arr.SetReflectValue(reflect.ValueOf(&aPtr), i, nil)
+			assert.Equal(t, v, anInt)
+			assert.Equal(t, int8(v), anInt8)
+			assert.Equal(t, int64(v), anInt64)
+			assert.Equal(t, uint32(v), aUint32)
+			assert.Equal(t, valid[i], aBool)
+			if valid[i] {
+				assert.Equal(t, uint64(v), *aPtr)
+				assert.Panics(t, func() {
+					arr.SetReflectValue(reflect.ValueOf(&aStruct), i, nil)
+				})
+			} else {
+				assert.Nil(t, aPtr)
+			}
+		}
+	}
+
 }

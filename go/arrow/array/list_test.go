@@ -618,6 +618,79 @@ func TestListArraySlice(t *testing.T) {
 	}
 }
 
+func TestListArraySetReflectValue(t *testing.T) {
+	tests := []struct {
+		typeID  arrow.Type
+		offsets interface{}
+		sizes   interface{}
+		dt      arrow.DataType
+	}{
+		{arrow.LIST, []int32{0, 3, 3, 3, 7}, nil, arrow.ListOf(arrow.PrimitiveTypes.Int32)},
+		{arrow.LARGE_LIST, []int64{0, 3, 3, 3, 7}, nil, arrow.LargeListOf(arrow.PrimitiveTypes.Int32)},
+		{arrow.LIST_VIEW, []int32{0, 3, 3, 3, 7}, []int32{3, 0, 0, 4}, arrow.ListViewOf(arrow.PrimitiveTypes.Int32)},
+		{arrow.LARGE_LIST_VIEW, []int64{0, 3, 3, 3, 7}, []int64{3, 0, 0, 4}, arrow.LargeListViewOf(arrow.PrimitiveTypes.Int32)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.typeID.String(), func(t *testing.T) {
+			pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+			defer pool.AssertSize(t, 0)
+
+			var (
+				vs      = []int32{0, 1, 2, 3, 4, 5, 6}
+				isValid = []bool{true, false, true, true}
+				values  = [][]int32{{0, 1, 2}, nil, {}, {3, 4, 5, 6}}
+			)
+
+			lb := array.NewBuilder(pool, tt.dt).(array.VarLenListLikeBuilder)
+			defer lb.Release()
+			vb := lb.ValueBuilder().(*array.Int32Builder)
+			vb.Reserve(len(vs))
+
+			switch tt.typeID {
+			case arrow.LIST:
+				lb.(*array.ListBuilder).AppendValues(tt.offsets.([]int32), isValid)
+			case arrow.LARGE_LIST:
+				lb.(*array.LargeListBuilder).AppendValues(tt.offsets.([]int64), isValid)
+			case arrow.LIST_VIEW:
+				lb.(*array.ListViewBuilder).AppendValuesWithSizes(tt.offsets.([]int32), tt.sizes.([]int32), isValid)
+			case arrow.LARGE_LIST_VIEW:
+				lb.(*array.LargeListViewBuilder).AppendValuesWithSizes(tt.offsets.([]int64), tt.sizes.([]int64), isValid)
+			}
+			for _, v := range vs {
+				vb.Append(v)
+			}
+
+			arr := lb.NewArray().(array.VarLenListLike)
+			defer arr.Release()
+
+			var anArr [4]int32
+			var aSlice []int32
+			var ptrArr *[4]int32
+			var ptrPtrSlice **[]int32
+
+			for i := range values {
+				arr.SetReflectValue(reflect.ValueOf(&anArr), i, nil)
+				arr.SetReflectValue(reflect.ValueOf(&aSlice), i, nil)
+				arr.SetReflectValue(reflect.ValueOf(&ptrArr), i, nil)
+				arr.SetReflectValue(reflect.ValueOf(&ptrPtrSlice), i, nil)
+
+				if isValid[i] {
+					assert.Equal(t, values[i], anArr[:len(values[i])])
+					assert.Equal(t, values[i], aSlice)
+					assert.Equal(t, values[i], (*ptrArr)[:len(values[i])])
+					assert.Equal(t, values[i], **ptrPtrSlice)
+				} else {
+					assert.Equal(t, make([]int32, len(anArr)), anArr[:])
+					assert.Equal(t, []int32(nil), aSlice)
+					assert.Nil(t, ptrArr)
+					assert.Nil(t, ptrPtrSlice)
+				}
+			}
+		})
+	}
+}
+
 func TestListViewArraySlice(t *testing.T) {
 	tests := []struct {
 		typeID  arrow.Type

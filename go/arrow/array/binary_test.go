@@ -723,4 +723,116 @@ func TestBinaryViewStringRoundTrip(t *testing.T) {
 	defer arr1.Release()
 
 	assert.True(t, Equal(arr, arr1))
+func TestBinarySetReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	values := []string{"a", "bc", "", "", "hijk", "lm", "", "opq", "", "tu"}
+	valids := []bool{true, true, false, false, true, true, true, true, false, true}
+
+	b := NewBinaryBuilder(mem, arrow.BinaryTypes.Binary)
+	defer b.Release()
+
+	b.AppendStringValues(values, valids)
+
+	arr := b.NewArray().(*Binary)
+	defer arr.Release()
+
+	bSlice := make([]byte, 0)
+	var bSlice2 []byte
+	var bString string
+	var ptr *[]byte
+	var ptrPtrString **string
+	for i := range values {
+		arr.SetReflectValue(reflect.ValueOf(&bSlice), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&bSlice2), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&bString), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptr), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrPtrString), i, nil)
+		assert.Equal(t, values[i], bString)
+		if valids[i] {
+			assert.Equal(t, []byte(values[i]), bSlice)
+			assert.Equal(t, []byte(values[i]), bSlice2)
+			assert.Equal(t, []byte(values[i]), *ptr)
+			assert.Equal(t, values[i], **ptrPtrString)
+		} else {
+			assert.Equal(t, []byte(nil), bSlice)
+			assert.Equal(t, []byte(nil), bSlice2)
+			assert.Nil(t, ptr)
+			assert.Nil(t, ptrPtrString)
+		}
+	}
+
+	b = NewBinaryBuilder(mem, arrow.BinaryTypes.Binary)
+	defer b.Release()
+	forArr := []string{values[1], values[5]}
+	for _, s := range forArr {
+		b.AppendReflectValue(reflect.ValueOf(s), nil)
+	}
+	arr = b.NewArray().(*Binary)
+	defer arr.Release()
+
+	var anArr [2]byte
+	var anArrPtr *[2]byte
+	for i, s := range forArr {
+		arr.SetReflectValue(reflect.ValueOf(&anArr), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&anArrPtr), i, nil)
+		assert.Equal(t, []byte(s), anArr[:])
+		assert.Equal(t, []byte(s), (*anArrPtr)[:])
+	}
+}
+
+func TestLargeBinarySetReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	values := []string{"a", "bc", "", "", "hijk", "lm", "", "opq", "", "tu"}
+	valids := []bool{true, true, false, false, true, true, true, true, false, true}
+
+	b := NewBinaryBuilder(mem, arrow.BinaryTypes.LargeBinary)
+	defer b.Release()
+
+	b.AppendStringValues(values, valids)
+
+	arr := b.NewArray().(*LargeBinary)
+	defer arr.Release()
+
+	bSlice := make([]byte, 0)
+	var bString string
+	var ptr *[]byte
+	var ptrPtrString **string
+	for i := range values {
+		arr.SetReflectValue(reflect.ValueOf(&bSlice), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&bString), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptr), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrPtrString), i, nil)
+		assert.Equal(t, values[i], bString)
+		if valids[i] {
+			assert.Equal(t, []byte(values[i]), bSlice)
+			assert.Equal(t, []byte(values[i]), *ptr)
+			assert.Equal(t, values[i], **ptrPtrString)
+		} else {
+			assert.Equal(t, []byte(nil), bSlice)
+			assert.Nil(t, ptr)
+			assert.Nil(t, ptrPtrString)
+		}
+	}
+
+	b = NewBinaryBuilder(mem, arrow.BinaryTypes.LargeBinary)
+	defer b.Release()
+	forArr := []string{values[1], values[5]}
+	for _, s := range forArr {
+		b.AppendReflectValue(reflect.ValueOf(s), nil)
+	}
+	arr = b.NewArray().(*LargeBinary)
+	defer arr.Release()
+
+	var anArr [2]byte
+	var anArrPtr *[2]byte
+	for i, s := range forArr {
+		arr.SetReflectValue(reflect.ValueOf(&anArr), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&anArrPtr), i, nil)
+		assert.Equal(t, []byte(s), anArr[:])
+		assert.Equal(t, []byte(s), (*anArrPtr)[:])
+	}
 }

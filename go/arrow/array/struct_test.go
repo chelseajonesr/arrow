@@ -292,7 +292,7 @@ func TestStructArrayBulkAppend(t *testing.T) {
 	}
 }
 
-func TestStructBuilder_AppendReflectValue(t *testing.T) {
+func TestStructBuilderAppendReflectValue(t *testing.T) {
 	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer pool.AssertSize(t, 0)
 
@@ -365,7 +365,7 @@ func TestStructBuilder_AppendReflectValue(t *testing.T) {
 	}
 
 	// This mapping will exclude field I2 in InnerStruct
-	mapping := array.ReflectMappingFromStruct[NestedStruct]()
+	mapping := array.ReflectMappingFromStruct[NestedStruct](true)
 
 	innerStructs := []InnerStruct{
 		{I1: 0.123, I2: "hello", I3: 0.321}, {I1: -234.1, I2: "world", I3: 594}, {I1: 0.0, I2: "世界", I3: 999.9},
@@ -391,10 +391,27 @@ func TestStructBuilder_AppendReflectValue(t *testing.T) {
 	arr = nsBuilder.NewArray().(*array.Struct)
 	defer arr.Release()
 
-	want = `{[1 2 3 -40 (null) 1] [{[0.123 0.123 0] [0.321 0.321 999.9]} (null) {[] []} {[-234.1] [594]} (null) {[0.123 0.123 0] [0.321 0.321 999.9]}] [{["hello" "world"] {[1.1 1.2] [1 2] ["hello" (null)]}} {[""] {[1.3] [3] ["world"]}} {["bye" "hello"] {[(null) 1.2] [(null) 2] [(null) (null)]}} (null) (null) {["hello" "world"] {[1.1 1.2] [1 2] ["hello" (null)]}}]}`
+	// Map entries may show up in either order, so we need to check for all combinations
 	got = arr.String()
-	if got != want {
-		t.Fatalf("invalid string representation:\ngot = %q\nwant= %q", got, want)
+	matched := false
+	wantMap1 := []string{`{["hello" "world"] {[1.1 1.2] [1 2] ["hello" (null)]}}`, `{["world" "hello"] {[1.2 1.1] [2 1] [(null) "hello"]}}`}
+	wantMap3 := []string{`{["bye" "hello"] {[(null) 1.2] [(null) 2] [(null) (null)]}}`, `{["hello" "bye"] {[1.2 (null)] [2 (null)] [(null) (null)]}}`}
+	wantOptions := make([]string, 0, 8)
+	for _, wm1 := range wantMap1 {
+		for _, wm3 := range wantMap3 {
+			for _, wm1repeat := range wantMap1 {
+				want := `{[1 2 3 -40 (null) 1] [{[0.123 0.123 0] [0.321 0.321 999.9]} (null) {[] []} {[-234.1] [594]} (null) {[0.123 0.123 0] [0.321 0.321 999.9]}] [` + wm1 + ` {[""] {[1.3] [3] ["world"]}} ` + wm3 + ` (null) (null) ` + wm1repeat + `]}`
+				wantOptions = append(wantOptions, want)
+				matched = matched || (got == want)
+			}
+		}
+	}
+	if !matched {
+		t.Logf("invalid string representation:\ngot = %q\n", got)
+		for i, w := range wantOptions {
+			t.Logf("want option %d: %q", i+1, w)
+		}
+		t.Fatal()
 	}
 
 }
@@ -635,5 +652,142 @@ func TestStructArrayUnmarshalJSONMissingFields(t *testing.T) {
 				}
 			},
 		)
+	}
+}
+
+func TestStructArraySetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	type SimpleStruct struct {
+		F1 float64
+		F2 int32
+		F3 *string
+	}
+
+	var (
+		f1s = []float64{1.1, 1.2, 1.3, 1.4}
+		f2s = []int32{1, 2, 3, 4}
+		f3s = []string{"hello", "", "world", ""}
+
+		fields = []arrow.Field{
+			{Name: "f1", Type: arrow.PrimitiveTypes.Float64},
+			{Name: "f2", Type: arrow.PrimitiveTypes.Int32},
+			{Name: "f3", Type: arrow.BinaryTypes.String, Nullable: true},
+		}
+		dtype = arrow.StructOf(fields...)
+	)
+
+	simpleStructs := make([]SimpleStruct, 4)
+	for i := 0; i < 4; i++ {
+		simpleStructs[i] = SimpleStruct{F1: f1s[i], F2: f2s[i], F3: &f3s[i]}
+		if i == 1 {
+			simpleStructs[i].F3 = nil
+		}
+	}
+
+	sb := array.NewStructBuilder(pool, dtype)
+	defer sb.Release()
+	for _, s := range simpleStructs {
+		assert.NoError(t, sb.AppendReflectValue(reflect.ValueOf(s), nil))
+	}
+	sb.AppendNull()
+
+	arr := sb.NewArray().(*array.Struct)
+	defer arr.Release()
+
+	var aSimpleStruct SimpleStruct
+	var ptrSimpleStruct *SimpleStruct
+	for i, v := range simpleStructs {
+		arr.SetReflectValue(reflect.ValueOf(&aSimpleStruct), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrSimpleStruct), i, nil)
+		assert.Equal(t, v, aSimpleStruct)
+		assert.Equal(t, v, *ptrSimpleStruct)
+	}
+	arr.SetReflectValue(reflect.ValueOf(&aSimpleStruct), 5, nil)
+	arr.SetReflectValue(reflect.ValueOf(&ptrSimpleStruct), 5, nil)
+	assert.Equal(t, SimpleStruct{}, aSimpleStruct)
+	assert.Nil(t, ptrSimpleStruct)
+
+	type InnerStruct struct {
+		I1 float64
+		I2 string `parquet:"-"`
+		I3 float32
+	}
+
+	// Leave out I2 from both the Arrow schema and later from the mapping
+	innerStructFields := []arrow.Field{
+		{Name: "i1", Type: arrow.PrimitiveTypes.Float64},
+		{Name: "i3", Type: arrow.PrimitiveTypes.Float32},
+	}
+	innerDtype := arrow.StructOf(innerStructFields...)
+
+	type NestedStruct struct {
+		N1 int
+		N2 []InnerStruct
+		N3 map[string]*SimpleStruct
+	}
+
+	nestedStructFields := []arrow.Field{
+		{Name: "n1", Type: arrow.PrimitiveTypes.Int32},
+		{Name: "n2", Type: arrow.ListOfField(arrow.Field{Name: "name", Type: innerDtype})},
+		{Name: "n3", Type: arrow.MapOf(arrow.BinaryTypes.String, dtype)},
+	}
+
+	// This mapping will exclude field I2 in InnerStruct
+	mappingToArrow := array.ReflectMappingFromStruct[NestedStruct](true)
+
+	innerStructs := []InnerStruct{
+		{I1: 0.123, I2: "hello", I3: 0.321}, {I1: -234.1, I2: "world", I3: 594}, {I1: 0.0, I2: "世界", I3: 999.9},
+	}
+	nestedStructs := []NestedStruct{
+		{N1: 1, N2: []InnerStruct{innerStructs[0], innerStructs[0], innerStructs[2]}, N3: map[string]*SimpleStruct{"hello": &simpleStructs[0], "world": &simpleStructs[1]}},
+		{N1: 2, N3: map[string]*SimpleStruct{"": &simpleStructs[2]}},
+		{N1: 3, N2: []InnerStruct{}, N3: map[string]*SimpleStruct{"hello": &simpleStructs[1], "bye": nil}},
+		{N1: -40, N2: []InnerStruct{innerStructs[1]}},
+	}
+
+	nsBuilder := array.NewStructBuilder(pool, arrow.StructOf(nestedStructFields...))
+	defer nsBuilder.Release()
+	for _, n := range nestedStructs {
+		assert.NoError(t, nsBuilder.AppendReflectValue(reflect.ValueOf(n), &mappingToArrow))
+	}
+
+	var ptr *NestedStruct
+	assert.NoError(t, nsBuilder.AppendReflectValue(reflect.ValueOf(ptr), &mappingToArrow))
+	ptr = &nestedStructs[0]
+	assert.NoError(t, nsBuilder.AppendReflectValue(reflect.ValueOf(ptr), &mappingToArrow))
+
+	arr = nsBuilder.NewArray().(*array.Struct)
+	defer arr.Release()
+
+	mappingToGo := array.ReflectMappingFromStruct[NestedStruct](false)
+
+	var valid = []bool{true, true, true, true, false, true}
+	vs := make([]NestedStruct, 6)
+
+	// Strip out all I2 entries as they should have been ignored during processing
+	for i, v := range []NestedStruct{nestedStructs[0], nestedStructs[1], nestedStructs[2], nestedStructs[3], {}, nestedStructs[0]} {
+		if !valid[i] {
+			vs[i] = NestedStruct{}
+		} else {
+			vs[i] = v
+			for j := range v.N2 {
+				v.N2[j].I2 = ""
+			}
+		}
+	}
+
+	var aNestedStruct NestedStruct
+	for i, v := range vs {
+		arr.SetReflectValue(reflect.ValueOf(&aNestedStruct), i, &mappingToGo)
+		arr.SetReflectValue(reflect.ValueOf(&ptr), i, &mappingToGo)
+
+		assert.True(t, reflect.DeepEqual(v, aNestedStruct), "%d Expected %v, got %v", i, v, aNestedStruct)
+		if valid[i] {
+			assert.True(t, reflect.DeepEqual(v, *ptr), "Expected %v, got %v", v, *ptr)
+		} else {
+			assert.Nil(t, ptr)
+		}
 	}
 }

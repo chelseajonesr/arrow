@@ -557,15 +557,15 @@ func TestReflectMappingFromStruct(t *testing.T) {
 		O3 int64
 	}
 
-	m := array.ReflectMappingFromStruct[outerStruct]()
+	m := array.ReflectMappingFromStruct[outerStruct](true)
 
-	expectedMapping := array.ReflectMapping{ArrowIndex: 0, NestedMappings: map[int]array.ReflectMapping{
-		0: {ArrowIndex: 0, NestedMappings: map[int]array.ReflectMapping{}},
-		1: {ArrowIndex: 1, NestedMappings: map[int]array.ReflectMapping{
-			0: {ArrowIndex: 0, NestedMappings: map[int]array.ReflectMapping{}},
-			2: {ArrowIndex: 1, NestedMappings: map[int]array.ReflectMapping{}}},
+	expectedMapping := arrow.ReflectMapping{DestinationIndex: 0, NestedMappingsBySourceIndex: map[int]arrow.ReflectMapping{
+		0: {DestinationIndex: 0, NestedMappingsBySourceIndex: map[int]arrow.ReflectMapping{}},
+		1: {DestinationIndex: 1, NestedMappingsBySourceIndex: map[int]arrow.ReflectMapping{
+			0: {DestinationIndex: 0, NestedMappingsBySourceIndex: map[int]arrow.ReflectMapping{}},
+			2: {DestinationIndex: 1, NestedMappingsBySourceIndex: map[int]arrow.ReflectMapping{}}},
 		},
-		2: {ArrowIndex: 2, NestedMappings: map[int]array.ReflectMapping{}},
+		2: {DestinationIndex: 2, NestedMappingsBySourceIndex: map[int]arrow.ReflectMapping{}},
 	}}
 
 	assert.True(t, reflect.DeepEqual(m, expectedMapping))

@@ -121,6 +121,10 @@ func (a *MonthInterval) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (d *MonthInterval) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	// TODO
+}
+
 func arrayEqualMonthInterval(left, right *MonthInterval) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -341,7 +345,7 @@ func (b *MonthIntervalBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *MonthIntervalBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *MonthIntervalBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -433,6 +437,10 @@ func (a *DayTimeInterval) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(vals)
+}
+
+func (d *DayTimeInterval) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	// TODO
 }
 
 func arrayEqualDayTimeInterval(left, right *DayTimeInterval) bool {
@@ -654,7 +662,7 @@ func (b *DayTimeIntervalBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *DayTimeIntervalBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *DayTimeIntervalBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	return fmt.Errorf("no conversion available to DayTimeInterval")
 }
 
@@ -738,6 +746,10 @@ func (a *MonthDayNanoInterval) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(vals)
+}
+
+func (d *MonthDayNanoInterval) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	// TODO
 }
 
 func arrayEqualMonthDayNanoInterval(left, right *MonthDayNanoInterval) bool {
@@ -961,7 +973,7 @@ func (b *MonthDayNanoIntervalBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *MonthDayNanoIntervalBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *MonthDayNanoIntervalBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	return fmt.Errorf("no conversion available to MonthDayNanoInterval")
 }
 

@@ -111,6 +111,10 @@ func (a *Timestamp) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (d *Timestamp) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	// todo
+}
+
 func arrayEqualTimestamp(left, right *Timestamp) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -374,7 +378,7 @@ func (b *TimestampBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *TimestampBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *TimestampBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}

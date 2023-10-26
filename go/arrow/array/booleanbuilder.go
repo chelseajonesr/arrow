@@ -258,7 +258,7 @@ func (b *BooleanBuilder) Value(i int) bool {
 	return bitutil.BitIsSet(b.rawData, i)
 }
 
-func (b *BooleanBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *BooleanBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}

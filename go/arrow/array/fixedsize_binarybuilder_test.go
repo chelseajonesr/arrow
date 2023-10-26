@@ -84,14 +84,23 @@ func TestFixedSizeBinaryBuilder_AppendReflectValue(t *testing.T) {
 	var v = [7]byte{0, 1, 2, 3, 4, 5, 6}
 	ptr = &v
 	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(ptr), nil))
+	// encoded abcdefg base64
+	s := "YWJjZGVmZw=="
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(s), nil))
 
-	valids := []bool{true, false, true, false, true}
+	valids := []bool{true, false, true, false, true, true}
 
 	assert.Equal(t, len(valids), b.Len(), "unexpected Len()")
 	assert.Equal(t, 2, b.NullN(), "unexpected NullN()")
 
 	a := b.NewFixedSizeBinaryArray()
 	defer a.Release()
+
+	assert.Equal(t, len(valids), a.Len())
+	assert.Equal(t, 2, a.NullN())
+	assert.Equal(t, []byte("7654321"), a.Value(0))
+	assert.Equal(t, "YWJjZGVmZw==", a.ValueStr(5))
+	assert.Equal(t, true, a.IsNull(1))
 }
 
 func TestFixedSizeBinaryBuilder_Empty(t *testing.T) {

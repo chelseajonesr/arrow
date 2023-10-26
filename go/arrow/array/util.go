@@ -523,35 +523,39 @@ func MakeArrayOfNull(mem memory.Allocator, dt arrow.DataType, length int) arrow.
 	return MakeFromData(data)
 }
 
-type ReflectMapping struct {
-	ArrowIndex     int
-	NestedMappings map[int]ReflectMapping
-}
-
-// ReflectMappingFromStruct generates a simple mapping of struct field indices to arrow schema indices,
+// ReflectMappingFromStruct generates a simple mapping of struct field indices between go structs and arrow structs,
 // skipping any fields with tag `parquet:"-"`
-// This can be used with AppendReflectValue() to build an Arrow array from Go structs, assuming
-// the builder's schema was generated with schema.NewSchemaFromStruct() and pqarrow.FromParquet()
-func ReflectMappingFromStruct[T any]() ReflectMapping {
+// If toArrow is true, this can be used with builder AppendReflectValue() to build an Arrow array from Go structs,
+// assuming the builder's schema was generated with schema.NewSchemaFromStruct() and pqarrow.FromParquet()
+// Or if toArrow is false, this can be used with array SetReflectValue() to build a Go struct from an Arrow array.
+// This function does not handle more complex cases, such as the Arrow and Go structs having fields in
+// different orders, or Arrow containing fields that are not present in the Go struct.
+func ReflectMappingFromStruct[T any](toArrow bool) arrow.ReflectMapping {
 	var v [0]T
 	t := reflect.TypeOf(v).Elem()
-	mapping := make(map[int]ReflectMapping)
+	mapping := make(map[int]arrow.ReflectMapping)
 
 	// Recursively add fields to mapping
-	addFieldToMapping(t, mapping)
+	addFieldToMapping(t, mapping, toArrow)
 
-	return ReflectMapping{NestedMappings: mapping}
+	return arrow.ReflectMapping{NestedMappingsBySourceIndex: mapping}
 }
 
-func addFieldToMapping(t reflect.Type, mapping map[int]ReflectMapping) {
+// example, go -> arrow {a (field 0), b (field 1), c (parquet:"-") (field 2), d (field 3)}
+// to
+// {0, map { 0: {0, nil}, 1: {1, nil}, 3: {2, nil}}}
+// to go the other way we would want...
+// {0, map { 0: {0, nil}, 1: {1, nil}, 2: {3, nil}}}
+
+func addFieldToMapping(t reflect.Type, mapping map[int]arrow.ReflectMapping, toArrow bool) {
 	for t.Kind() == reflect.Pointer || t.Kind() == reflect.Array || t.Kind() == reflect.Slice || t.Kind() == reflect.Map {
 		t = t.Elem()
 	}
 	if t.Kind() == reflect.Struct {
 		arrowIndex := 0
-		for i := 0; i < t.NumField(); i++ {
+		for goIndex := 0; goIndex < t.NumField(); goIndex++ {
 			exclude := false
-			field := t.Field(i)
+			field := t.Field(goIndex)
 			// Look for a parquet tag for this field
 			tag := field.Tag
 			if ptags, ok := tag.Lookup("parquet"); ok {
@@ -560,10 +564,117 @@ func addFieldToMapping(t reflect.Type, mapping map[int]ReflectMapping) {
 				}
 			}
 			if !exclude {
-				mapping[i] = ReflectMapping{ArrowIndex: arrowIndex, NestedMappings: make(map[int]ReflectMapping)}
-				addFieldToMapping(field.Type, mapping[i].NestedMappings)
+				var (
+					destinationIndex int
+					sourceIndex      int
+				)
+				if toArrow {
+					destinationIndex = arrowIndex
+					sourceIndex = goIndex
+				} else {
+					destinationIndex = goIndex
+					sourceIndex = arrowIndex
+				}
+				mapping[sourceIndex] = arrow.ReflectMapping{DestinationIndex: destinationIndex, NestedMappingsBySourceIndex: make(map[int]arrow.ReflectMapping)}
+				addFieldToMapping(field.Type, mapping[sourceIndex].NestedMappingsBySourceIndex, toArrow)
 				arrowIndex++
 			}
 		}
 	}
+}
+
+func instantiateReflectValuePointer(v reflect.Value) reflect.Value {
+	if v.Kind() == reflect.Pointer {
+		if v.CanSet() {
+			pointedAtType := v.Type().Elem()
+			switch pointedAtType.Kind() {
+			case reflect.Map, reflect.Slice:
+				// TODO should array go here also?
+				containerPtr := reflect.New(pointedAtType)
+				containerPtr.Elem().Set(newReflectValueByType(pointedAtType))
+				v.Set(containerPtr)
+			default:
+				v.Set(newReflectValueByType(pointedAtType))
+			}
+		}
+		v = v.Elem()
+	}
+	return v
+}
+
+func instantiateReflectValuePointers(v reflect.Value) reflect.Value {
+	// First navigate through pointers
+	for v.Kind() == reflect.Pointer {
+		v = instantiateReflectValuePointer(v)
+	}
+
+	// If there was a pointer to a map or slice, it will have been set above
+	// but if the map or slice was passed in directly it needs to get set here
+	switch v.Kind() {
+	case reflect.Map, reflect.Slice:
+		// TODO array here?
+		if v.IsNil() {
+			v.Set(newReflectValueByType(v.Type()))
+		}
+	}
+	return v
+}
+
+func traverseAndInstantiateIndirections(goValue reflect.Value) reflect.Value {
+	elem := goValue
+	for elem.Type().Kind() == reflect.Pointer {
+		if !elem.CanSet() {
+			elem = elem.Elem()
+			continue
+		}
+		elemType := elem.Type().Elem()
+		switch elemType.Kind() {
+		case reflect.Map:
+			newMap := reflect.MakeMap(elemType)
+			newMapPtr := reflect.New(elemType)
+			newMapPtr.Elem().Set(newMap)
+			elem.Set(newMapPtr)
+		case reflect.Slice:
+			newSlice := reflect.MakeSlice(elemType, 0, 10)
+			newSlicePtr := reflect.New(elemType)
+			newSlicePtr.Elem().Set(newSlice)
+			elem.Set(newSlicePtr)
+		default:
+			newElem := newReflectValueByType(elemType)
+			elem.Set(newElem)
+		}
+		if !elem.Elem().IsValid() {
+			break
+		}
+		elem = elem.Elem()
+	}
+	if elem.Type().Kind() == reflect.Map && elem.IsNil() {
+		newMap := newReflectValueByType(elem.Type())
+		elem.Set(newMap)
+	}
+	if elem.Type().Kind() == reflect.Slice && elem.IsNil() {
+		newSlice := newReflectValueByType(elem.Type())
+		elem.Set(newSlice)
+	}
+	if elem.Type().Kind() == reflect.Pointer && elem.Elem().IsValid() {
+		elem = elem.Elem()
+	}
+	return elem
+}
+
+// Create a new value based on the given type
+func newReflectValueByType(elemType reflect.Type) reflect.Value {
+	var entry reflect.Value
+	switch elemType.Kind() {
+	case reflect.Map:
+		entry = reflect.MakeMap(elemType)
+	case reflect.Slice:
+		entry = reflect.MakeSlice(elemType, 0, 10)
+	case reflect.Pointer:
+		entry = reflect.New(elemType)
+		// todo test array
+	default:
+		entry = reflect.New(elemType)
+	}
+	return entry
 }

@@ -96,7 +96,7 @@ func TestNewDecimal128Builder(t *testing.T) {
 	a.Release()
 }
 
-func TestDecimal128Builder_AppendReflectValue(t *testing.T) {
+func TestDecimal128BuilderAppendReflectValue(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
 
@@ -280,4 +280,52 @@ func TestDecimal128StringRoundTrip(t *testing.T) {
 	defer arr1.Release()
 
 	assert.True(t, array.Equal(arr, arr1))
+}
+
+func TestDecimal128SetReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewDecimal128Builder(mem, &arrow.Decimal128Type{Precision: 10, Scale: 2})
+	defer ab.Release()
+
+	want := []decimal128.Num{
+		decimal128.New(1, 1),
+		decimal128.New(2, 2),
+		decimal128.New(3, 3),
+		{},
+		decimal128.FromI64(-5),
+		decimal128.FromI64(-6),
+		{},
+		decimal128.FromI64(8),
+		decimal128.FromI64(9),
+		decimal128.FromI64(10),
+	}
+	valids := []bool{true, true, true, false, true, true, false, true, true, true}
+	expectedStrings := []string{"1.844674407e+17", "3.689348815e+17", "5.534023222e+17", "", "-0.05", "-0.06", "", "0.08", "0.09", "0.1"}
+
+	for i, valid := range valids {
+		switch {
+		case valid:
+			ab.Append(want[i])
+		default:
+			ab.AppendNull()
+		}
+	}
+
+	arr := ab.NewDecimal128Array()
+	defer arr.Release()
+
+	var s string
+	var ptr *string
+	for i := range want {
+		arr.SetReflectValue(reflect.ValueOf(&s), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptr), i, nil)
+		if valids[i] {
+			assert.Equal(t, expectedStrings[i], s)
+			assert.Equal(t, expectedStrings[i], *ptr)
+		} else {
+			assert.Nil(t, ptr)
+		}
+	}
 }

@@ -292,3 +292,56 @@ func TestFixedSizeListStringRoundTrip(t *testing.T) {
 
 	assert.True(t, array.Equal(arr, arr1))
 }
+
+func TestFixedSizeListSetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	const N = 3
+	var (
+		values = [][N]int32{{0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {9, -9, -8}}
+		valid  = []bool{true, false, true, true}
+	)
+
+	b := array.NewFixedSizeListBuilder(pool, N, arrow.PrimitiveTypes.Int32)
+	defer b.Release()
+
+	vb := b.ValueBuilder().(*array.Int32Builder)
+	vb.Reserve(len(values))
+
+	for i, v := range values {
+		b.Append(valid[i])
+		vb.AppendValues(v[:], nil)
+	}
+
+	arr := b.NewArray().(*array.FixedSizeList)
+	defer arr.Release()
+
+	var anArr [N]int32
+	aSlice := make([]int32, N)
+	var ptrArr *[N]int32
+	var ptrPtrSlice **[]int32
+	var anInt int32
+
+	for i := range values {
+		arr.SetReflectValue(reflect.ValueOf(&anArr), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aSlice), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrArr), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrPtrSlice), i, nil)
+
+		if valid[i] {
+			assert.Equal(t, values[i], anArr)
+			assert.Equal(t, values[i][:], aSlice)
+			assert.Equal(t, values[i], *ptrArr)
+			assert.Equal(t, values[i][:], **ptrPtrSlice)
+			assert.Panics(t, func() {
+				arr.SetReflectValue(reflect.ValueOf(&anInt), i, nil)
+			})
+		} else {
+			assert.Equal(t, [3]int32{}, anArr)
+			assert.Equal(t, []int32(nil), aSlice)
+			assert.Nil(t, ptrArr)
+			assert.Nil(t, ptrPtrSlice)
+		}
+	}
+}

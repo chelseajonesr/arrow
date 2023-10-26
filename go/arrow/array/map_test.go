@@ -247,6 +247,8 @@ func TestMapBuilder_AppendReflectValue(t *testing.T) {
 	for i := 0; i < arr.Len(); i++ {
 		assert.Equal(t, arr2.IsValid(i), arr.IsValid(i))
 		if arr.IsValid(i) {
+			// Map iterators aren't sorted, so to verify equality,
+			// retrieve keys and items and sort before comparing
 			s, e := arr.ValueOffsets(i)
 			keys := make([]string, 0, e-s)
 			keys2 := make([]string, 0, e-s)
@@ -266,8 +268,6 @@ func TestMapBuilder_AppendReflectValue(t *testing.T) {
 			assert.Equal(t, items, items2)
 		}
 	}
-	assert.Equal(t, arr2.Keys(), arr.Keys())
-	assert.Equal(t, arr2.Items(), arr.Items())
 }
 
 func TestMapStringRoundTrip(t *testing.T) {

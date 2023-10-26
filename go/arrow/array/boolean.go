@@ -18,6 +18,7 @@ package array
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -107,6 +108,45 @@ func (a *Boolean) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(vals)
+}
+
+func (a *Boolean) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Bool:
+		v.SetBool(a.Value(i))
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		var asInt int64
+		if a.Value(i) {
+			asInt = 1
+		} else {
+			asInt = 0
+		}
+		v.SetInt(asInt)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		var asUint uint64
+		if a.Value(i) {
+			asUint = 1
+		} else {
+			asUint = 0
+		}
+		v.SetUint(asUint)
+	case reflect.String:
+		v.SetString(strconv.FormatBool(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Boolean to %s", v.Kind()))
+	}
 }
 
 func arrayEqualBoolean(left, right *Boolean) bool {

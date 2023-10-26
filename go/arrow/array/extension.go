@@ -124,6 +124,10 @@ func (e *ExtensionArrayBase) MarshalJSON() ([]byte, error) {
 	return json.Marshal(e.storage)
 }
 
+func (d *ExtensionArrayBase) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	panic("no conversion available from ExtensionArrayBase")
+}
+
 // Retain increases the reference count by 1.
 // Retain may be called simultaneously from multiple goroutines.
 func (e *ExtensionArrayBase) Retain() {

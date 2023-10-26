@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"reflect"
 	"strings"
 	"unsafe"
 
@@ -169,6 +170,31 @@ func (a *Binary) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *Binary) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString(a.ValueString(i))
+	case reflect.Array:
+		reflect.Copy(v, reflect.ValueOf(a.Value(i)))
+	case reflect.Slice:
+		v.SetBytes(a.Value(i))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Binary to %s", v.Kind()))
+	}
+}
+
 func arrayEqualBinary(left, right *Binary) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -306,6 +332,31 @@ func (a *LargeBinary) MarshalJSON() ([]byte, error) {
 	// golang marshal standard says that []byte will be marshalled
 	// as a base64-encoded string
 	return json.Marshal(vals)
+}
+
+func (a *LargeBinary) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString(a.ValueString(i))
+	case reflect.Array:
+		reflect.Copy(v, reflect.ValueOf(a.Value(i)))
+	case reflect.Slice:
+		v.SetBytes(a.Value(i))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow LargeBinary to %s", v.Kind()))
+	}
 }
 
 func arrayEqualLargeBinary(left, right *LargeBinary) bool {

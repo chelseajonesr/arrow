@@ -162,6 +162,10 @@ func (a *FixedSizeList) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (a *FixedSizeList) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	SetReflectValue(a, v, i, reflectMapping)
+}
+
 type FixedSizeListBuilder struct {
 	builder
 
@@ -367,7 +371,7 @@ func (b *FixedSizeListBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *FixedSizeListBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *FixedSizeListBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}

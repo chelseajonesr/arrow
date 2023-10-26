@@ -106,6 +106,27 @@ func (a *Decimal256) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *Decimal256) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString(a.ValueStr(i))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Decimal256 to %s", v.Kind()))
+	}
+}
+
 func arrayEqualDecimal256(left, right *Decimal256) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -358,7 +379,7 @@ func (b *Decimal256Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Decimal256Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Decimal256Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}

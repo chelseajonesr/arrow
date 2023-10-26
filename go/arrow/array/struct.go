@@ -189,6 +189,36 @@ func (a *Struct) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (a *Struct) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Struct:
+		for arrowIndex, f := range a.fields {
+			if reflectMapping != nil {
+				nestedMapping, ok := (*reflectMapping).NestedMappingsBySourceIndex[arrowIndex]
+				if ok {
+					f.SetReflectValue(v.Field(nestedMapping.DestinationIndex), i, &nestedMapping)
+				}
+			} else {
+				f.SetReflectValue(v.Field(arrowIndex), i, nil)
+			}
+		}
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Struct to %s", v.Kind()))
+	}
+}
+
 func arrayEqualStruct(left, right *Struct) bool {
 	for i, lf := range left.fields {
 		rf := right.fields[i]
@@ -486,7 +516,7 @@ func (b *StructBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *StructBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *StructBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -499,9 +529,9 @@ func (b *StructBuilder) AppendReflectValue(v reflect.Value, reflectMapping *Refl
 	b.Append(true)
 	for i := 0; i < v.NumField(); i++ {
 		if reflectMapping != nil {
-			nestedMapping, ok := (*reflectMapping).NestedMappings[i]
+			nestedMapping, ok := (*reflectMapping).NestedMappingsBySourceIndex[i]
 			if ok {
-				err := b.FieldBuilder(nestedMapping.ArrowIndex).AppendReflectValue(v.Field(i), &nestedMapping)
+				err := b.FieldBuilder(nestedMapping.DestinationIndex).AppendReflectValue(v.Field(i), &nestedMapping)
 				if err != nil {
 					return err
 				}

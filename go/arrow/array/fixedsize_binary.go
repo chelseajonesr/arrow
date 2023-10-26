@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -104,6 +105,32 @@ func (a *FixedSizeBinary) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(vals)
+}
+
+func (a *FixedSizeBinary) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.String:
+		// TODO - other option is to use ValueStr and set base64-encoded
+		v.SetString(string(a.Value(i)))
+	case reflect.Array:
+		reflect.Copy(v, reflect.ValueOf(a.Value(i)))
+	case reflect.Slice:
+		v.SetBytes(a.Value(i))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow FixedSizeBinary to %s", v.Kind()))
+	}
 }
 
 func arrayEqualFixedSizeBinary(left, right *FixedSizeBinary) bool {

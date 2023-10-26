@@ -248,6 +248,10 @@ func (r *RunEndEncoded) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (d *RunEndEncoded) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	panic("no conversion available from RunEndEncoded")
+}
+
 func arrayRunEndEncodedEqual(l, r *RunEndEncoded) bool {
 	// types were already checked before getting here, so we know
 	// the encoded types are equal
@@ -514,7 +518,7 @@ func (b *RunEndEncodedBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *RunEndEncodedBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *RunEndEncodedBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	return fmt.Errorf("no conversion available to RunEndEncoded")
 }
 

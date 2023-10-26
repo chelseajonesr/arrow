@@ -131,6 +131,46 @@ func (a *List) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func SetReflectValue(a ListLike, v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	start, end := a.ValueOffsets(i)
+	len := int(end - start)
+	switch v.Kind() {
+	case reflect.Array:
+		for i := start; i < end; i++ {
+			entry := newReflectValueByType(v.Type().Elem())
+			a.ListValues().SetReflectValue(entry, int(i), reflectMapping)
+			v.Index(int(i - start)).Set(entry.Elem())
+		}
+	case reflect.Slice:
+		v.Set(reflect.MakeSlice(v.Type(), len, len))
+
+		start, end := a.ValueOffsets(i)
+		for i := start; i < end; i++ {
+			entry := newReflectValueByType(v.Type().Elem())
+			a.ListValues().SetReflectValue(entry, int(i), reflectMapping)
+			v.Index(int(i - start)).Set(entry.Elem())
+		}
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow ListLike %s to %s", reflect.TypeOf(a), v.Kind()))
+	}
+}
+
+func (a *List) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	SetReflectValue(a, v, i, reflectMapping)
+}
+
 func arrayEqualList(left, right *List) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -261,6 +301,10 @@ func (a *LargeList) MarshalJSON() ([]byte, error) {
 	}
 	buf.WriteByte(']')
 	return buf.Bytes(), nil
+}
+
+func (a *LargeList) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	SetReflectValue(a, v, i, reflectMapping)
 }
 
 func arrayEqualLargeList(left, right *LargeList) bool {
@@ -634,7 +678,7 @@ func (b *baseListBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *baseListBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *baseListBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -759,6 +803,10 @@ func (a *ListView) MarshalJSON() ([]byte, error) {
 	}
 	buf.WriteByte(']')
 	return buf.Bytes(), nil
+}
+
+func (a *ListView) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	SetReflectValue(a, v, i, reflectMapping)
 }
 
 func arrayEqualListView(left, right *ListView) bool {
@@ -906,6 +954,10 @@ func (a *LargeListView) MarshalJSON() ([]byte, error) {
 	}
 	buf.WriteByte(']')
 	return buf.Bytes(), nil
+}
+
+func (a *LargeListView) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	SetReflectValue(a, v, i, reflectMapping)
 }
 
 func arrayEqualLargeListView(left, right *LargeListView) bool {
@@ -1442,7 +1494,7 @@ func (b *baseListViewBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *baseListViewBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *baseListViewBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	return fmt.Errorf("no conversion available to ListView")
 }
 

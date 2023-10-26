@@ -306,6 +306,10 @@ func (d *Dictionary) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (d *Dictionary) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	panic("no conversion available from Dictionary")
+}
+
 func arrayEqualDict(l, r *Dictionary) bool {
 	return Equal(l.Dictionary(), r.Dictionary()) && Equal(l.indices, r.indices)
 }

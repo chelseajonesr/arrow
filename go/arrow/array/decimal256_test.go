@@ -97,7 +97,7 @@ func TestNewDecimal256Builder(t *testing.T) {
 	a.Release()
 }
 
-func TestDecimal256Builder_AppendReflectValue(t *testing.T) {
+func TestDecimal256BuilderAppendReflectValue(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
 
@@ -281,4 +281,52 @@ func TestDecimal256StringRoundTrip(t *testing.T) {
 	defer arr1.Release()
 
 	assert.True(t, array.Equal(arr, arr1))
+}
+
+func TestDecimal256SetReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	ab := array.NewDecimal256Builder(mem, &arrow.Decimal256Type{Precision: 10, Scale: 2})
+	defer ab.Release()
+
+	want := []decimal256.Num{
+		decimal256.New(1, 1, 1, 1),
+		decimal256.New(2, 2, 2, 2),
+		decimal256.New(3, 3, 3, 3),
+		{},
+		decimal256.FromI64(-5),
+		decimal256.FromI64(-6),
+		{},
+		decimal256.FromI64(8),
+		decimal256.FromI64(9),
+		decimal256.FromI64(10),
+	}
+	valids := []bool{true, true, true, false, true, true, false, true, true, true}
+	expectedStrings := []string{"6.277101735e+55", "1.255420347e+56", "1.883130521e+56", "", "-0.05", "-0.06", "", "0.08", "0.09", "0.1"}
+
+	for i, valid := range valids {
+		switch {
+		case valid:
+			ab.Append(want[i])
+		default:
+			ab.AppendNull()
+		}
+	}
+
+	arr := ab.NewDecimal256Array()
+	defer arr.Release()
+
+	var s string
+	var ptr *string
+	for i := range want {
+		arr.SetReflectValue(reflect.ValueOf(&s), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptr), i, nil)
+		if valids[i] {
+			assert.Equal(t, expectedStrings[i], s)
+			assert.Equal(t, expectedStrings[i], *ptr)
+		} else {
+			assert.Nil(t, ptr)
+		}
+	}
 }

@@ -262,7 +262,7 @@ func (b *Float16Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Float16Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Float16Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}

@@ -107,6 +107,36 @@ func (a *Map) Release() {
 	a.items.Release()
 }
 
+func (a *Map) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Map:
+		v.Set(reflect.MakeMap(v.Type()))
+
+		start, end := a.ValueOffsets(i)
+		for i := start; i < end; i++ {
+			entry := newReflectValueByType(v.Type().Elem())
+			a.Items().SetReflectValue(entry, int(i), reflectMapping)
+			key := newReflectValueByType(v.Type().Key())
+			a.Keys().SetReflectValue(key, int(i), reflectMapping)
+			v.SetMapIndex(key.Elem(), entry.Elem())
+		}
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Map to %s", v.Kind()))
+	}
+}
+
 func arrayEqualMap(left, right *Map) bool {
 	// since Map is implemented using a list, we can just use arrayEqualList
 	return arrayEqualList(left.List, right.List)
@@ -355,7 +385,7 @@ func (b *MapBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *MapBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *MapBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}

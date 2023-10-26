@@ -73,7 +73,7 @@ type Builder interface {
 
 	// AppendReflectValue adds a new value from a Go reflect value
 	// reflectMapping is optional and allows for skipping fields in Go structs
-	AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error
+	AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error
 
 	// Reserve ensures there is enough space for appending n elements
 	// by checking the capacity and calling Resize if necessary.

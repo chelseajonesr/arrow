@@ -273,7 +273,7 @@ func (b *Int64Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Int64Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Int64Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -531,7 +531,7 @@ func (b *Uint64Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Uint64Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Uint64Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -789,7 +789,7 @@ func (b *Float64Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Float64Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Float64Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -1043,7 +1043,7 @@ func (b *Int32Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Int32Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Int32Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -1301,7 +1301,7 @@ func (b *Uint32Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Uint32Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Uint32Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -1559,7 +1559,7 @@ func (b *Float32Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Float32Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Float32Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -1813,7 +1813,7 @@ func (b *Int16Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Int16Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Int16Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -2071,7 +2071,7 @@ func (b *Uint16Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Uint16Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Uint16Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -2329,7 +2329,7 @@ func (b *Int8Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Int8Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Int8Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -2587,7 +2587,7 @@ func (b *Uint8Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Uint8Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Uint8Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -2846,7 +2846,7 @@ func (b *Time32Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Time32Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Time32Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -3105,7 +3105,7 @@ func (b *Time64Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Time64Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Time64Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -3363,7 +3363,7 @@ func (b *Date32Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Date32Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Date32Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -3621,7 +3621,7 @@ func (b *Date64Builder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *Date64Builder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *Date64Builder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -3903,7 +3903,7 @@ func (b *DurationBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *DurationBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *DurationBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}

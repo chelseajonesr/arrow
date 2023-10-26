@@ -18,6 +18,7 @@ package arrow
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/apache/arrow/go/v16/arrow/memory"
 	"github.com/apache/arrow/go/v16/internal/json"
@@ -113,6 +114,12 @@ type Array interface {
 	// Get single value to be marshalled with `json.Marshal`
 	GetOneForMarshal(i int) interface{}
 
+	// SetReflectValue sets the reflect.Value to the value at index i
+	// It will panic if there is no conversion possible to the reflect type
+	// The reflectMapping is only needed if converting a Struct array to a
+	// go struct type where the fields are not mapped 1:1.
+	SetReflectValue(v reflect.Value, i int, reflectMapping *ReflectMapping)
+
 	Data() ArrayData
 
 	// Len returns the number of elements in the array.
@@ -126,4 +133,12 @@ type Array interface {
 	// Release may be called simultaneously from multiple goroutines.
 	// When the reference count goes to zero, the memory is freed.
 	Release()
+}
+
+// TODO - is there a more appropriate location for this
+type ReflectMapping struct {
+	// The destination field index in the parent struct
+	DestinationIndex int
+	// Map of source struct field indices to ReflectMappings
+	NestedMappingsBySourceIndex map[int]ReflectMapping
 }

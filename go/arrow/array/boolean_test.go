@@ -19,6 +19,7 @@ package array_test
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -319,4 +320,61 @@ func TestBooleanStringRoundTrip(t *testing.T) {
 	defer arr1.Release()
 
 	assert.True(t, array.Equal(arr, arr1))
+}
+
+func TestBooleanSetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	values := []bool{true, false, true, true, true, true, true, false, true, false}
+
+	bb := array.NewBooleanBuilder(pool)
+	defer bb.Release()
+
+	for _, v := range values {
+		bb.Append(v)
+	}
+	bb.AppendNull()
+
+	arr := bb.NewArray().(*array.Boolean)
+	defer arr.Release()
+
+	var b bool
+	var asInt int
+	var asUint uint
+	var asString string
+	var ptr *bool
+	var ptrInt *int
+	var ptrPtrString **string
+	for i := range values {
+		arr.SetReflectValue(reflect.ValueOf(&b), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&asInt), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&asUint), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&asString), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptr), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrInt), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrPtrString), i, nil)
+		assert.Equal(t, values[i], b)
+		var expectedInt int
+		if values[i] {
+			expectedInt = 1
+		}
+		assert.Equal(t, expectedInt, asInt)
+		var expectedUint uint
+		if values[i] {
+			expectedUint = 1
+		}
+		assert.Equal(t, expectedUint, asUint)
+		assert.Equal(t, strconv.FormatBool(values[i]), asString)
+		assert.Equal(t, values[i], *ptr)
+		assert.Equal(t, asInt, *ptrInt)
+		assert.Equal(t, asString, **ptrPtrString)
+	}
+
+	arr.SetReflectValue(reflect.ValueOf(&ptr), len(values), nil)
+	arr.SetReflectValue(reflect.ValueOf(&ptrInt), len(values), nil)
+	arr.SetReflectValue(reflect.ValueOf(&ptrPtrString), len(values), nil)
+	assert.Nil(t, ptr)
+	assert.Nil(t, ptrInt)
+	assert.Nil(t, ptrPtrString)
 }

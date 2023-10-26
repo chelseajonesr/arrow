@@ -18,6 +18,7 @@ package array
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/apache/arrow/go/v16/arrow"
@@ -94,6 +95,27 @@ func (a *Float16) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(vals)
+}
+
+func (a *Float16) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Float32, reflect.Float64:
+		v.SetFloat(float64(a.Value(i).Float32()))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Float16 to %s", v.Kind()))
+	}
 }
 
 func arrayEqualFloat16(left, right *Float16) bool {

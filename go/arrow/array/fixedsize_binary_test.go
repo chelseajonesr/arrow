@@ -17,6 +17,7 @@
 package array_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -186,4 +187,52 @@ func TestFixedSizeBinaryStringRoundTrip(t *testing.T) {
 	defer arr1.Release()
 
 	assert.True(t, array.Equal(arr, arr1))
+}
+
+func TestFixedSizeBinarySetReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	dtype := &arrow.FixedSizeBinaryType{ByteWidth: 4}
+	b := array.NewFixedSizeBinaryBuilder(mem, dtype)
+	defer b.Release()
+
+	var values = [][]byte{
+		[]byte("7654"),
+		nil,
+		[]byte("AZER"),
+	}
+	valid := []bool{true, false, true}
+	b.AppendValues(values, valid)
+
+	arr := b.NewFixedSizeBinaryArray()
+	defer arr.Release()
+
+	var aSlice []byte
+	var anArr [4]byte
+	var aString string
+	var ptrArr *[4]byte
+	var ptrPtrSlice **[]byte
+
+	for i := range values {
+		arr.SetReflectValue(reflect.ValueOf(&aSlice), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&anArr), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aString), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrArr), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrPtrSlice), i, nil)
+
+		if valid[i] {
+			assert.Equal(t, values[i], aSlice)
+			assert.Equal(t, values[i], anArr[:])
+			assert.Equal(t, string(values[i]), aString)
+			assert.Equal(t, values[i], (*ptrArr)[:])
+			assert.Equal(t, values[i], **ptrPtrSlice)
+		} else {
+			assert.Equal(t, []byte(nil), aSlice)
+			assert.Equal(t, make([]byte, 4), anArr[:])
+			assert.Equal(t, "", aString)
+			assert.Nil(t, ptrArr)
+			assert.Nil(t, ptrPtrSlice)
+		}
+	}
 }

@@ -380,6 +380,41 @@ func TestStringStringRoundTrip(t *testing.T) {
 	assert.True(t, array.Equal(arr, arr1))
 }
 
+func TestStringSetReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	var (
+		values = []string{"hello", "世界", "", "bye"}
+		valid  = []bool{true, true, false, true}
+	)
+
+	b := array.NewStringBuilder(mem)
+	defer b.Release()
+
+	b.AppendValues(values, valid)
+
+	arr := b.NewArray().(*array.String)
+	defer arr.Release()
+
+	var aString string
+	var ptrPtrString **string
+	var aSlice []string
+	for i, v := range values {
+		arr.SetReflectValue(reflect.ValueOf(&aString), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrPtrString), i, nil)
+		assert.Equal(t, v, aString)
+		if valid[i] {
+			assert.Equal(t, v, **ptrPtrString)
+			assert.Panics(t, func() {
+				arr.SetReflectValue(reflect.ValueOf(&aSlice), i, nil)
+			})
+		} else {
+			assert.Nil(t, ptrPtrString)
+		}
+	}
+}
+
 func TestLargeStringArray(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)
@@ -727,6 +762,41 @@ func TestLargeStringStringRoundTrip(t *testing.T) {
 	defer arr1.Release()
 
 	assert.True(t, array.Equal(arr, arr1))
+}
+
+func TestLargeStringSetReflectValue(t *testing.T) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer mem.AssertSize(t, 0)
+
+	var (
+		values = []string{"hello", "世界", "", "bye"}
+		valid  = []bool{true, true, false, true}
+	)
+
+	b := array.NewLargeStringBuilder(mem)
+	defer b.Release()
+
+	b.AppendValues(values, valid)
+
+	arr := b.NewLargeStringArray()
+	defer arr.Release()
+
+	var aString string
+	var ptrPtrString **string
+	var aSlice []string
+	for i, v := range values {
+		arr.SetReflectValue(reflect.ValueOf(&aString), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrPtrString), i, nil)
+		assert.Equal(t, v, aString)
+		if valid[i] {
+			assert.Equal(t, v, **ptrPtrString)
+			assert.Panics(t, func() {
+				arr.SetReflectValue(reflect.ValueOf(&aSlice), i, nil)
+			})
+		} else {
+			assert.Nil(t, ptrPtrString)
+		}
+	}
 }
 
 func TestStringValueLen(t *testing.T) {

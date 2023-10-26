@@ -343,6 +343,10 @@ func (a *SparseUnion) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (d *SparseUnion) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	panic("no conversion available from SparseUnion")
+}
+
 func (a *SparseUnion) ValueStr(i int) string {
 	if a.IsNull(i) {
 		return NullValueStr
@@ -617,6 +621,10 @@ func (a *DenseUnion) MarshalJSON() ([]byte, error) {
 	}
 	buf.WriteByte(']')
 	return buf.Bytes(), nil
+}
+
+func (d *DenseUnion) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	panic("no conversion available from DenseUnion")
 }
 
 func (a *DenseUnion) ValueStr(i int) string {
@@ -1105,7 +1113,7 @@ func (b *SparseUnionBuilder) UnmarshalOne(dec *json.Decoder) error {
 	return nil
 }
 
-func (b *SparseUnionBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *SparseUnionBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	return fmt.Errorf("no conversion available to SparseUnion")
 }
 
@@ -1362,7 +1370,7 @@ func (b *DenseUnionBuilder) UnmarshalOne(dec *json.Decoder) error {
 	return nil
 }
 
-func (b *DenseUnionBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *DenseUnionBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	return fmt.Errorf("no conversion available to DenseUnion")
 }
 

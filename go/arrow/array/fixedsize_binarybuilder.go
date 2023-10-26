@@ -256,7 +256,7 @@ func (b *FixedSizeBinaryBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *FixedSizeBinaryBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *FixedSizeBinaryBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -273,6 +273,8 @@ func (b *FixedSizeBinaryBuilder) AppendReflectValue(v reflect.Value, reflectMapp
 		} else {
 			b.Append(v.Bytes())
 		}
+	case reflect.String:
+		return b.AppendValueFromString(v.String())
 	default:
 		b.Append(v.Bytes())
 	}

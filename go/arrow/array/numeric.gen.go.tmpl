@@ -143,6 +143,42 @@ func (a *{{.Name}}) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *{{.Name}}) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+{{if or (eq .Name "Date32") (eq .Name "Date64") (eq .Name "Time32") (eq .Name "Time64") (eq .Name "Duration") -}}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+{{else if or (eq .Name "Int8") (eq .Name "Int16") (eq .Name "Int32") (eq .Name "Int64") (eq .Name "Uint8") (eq .Name "Uint16") (eq .Name "Uint32") (eq .Name "Uint64") -}}
+	case reflect.Bool:
+		v.SetBool(a.Value(i) != 0)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+{{else if or (eq .Name "Float32") (eq .Name "Float64") -}}
+	case reflect.Float32, reflect.Float64:
+		v.SetFloat(float64(a.Value(i)))
+{{else}}
+{{end -}}
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow {{.Name}} to %s", v.Kind()))
+	}
+}
+
 func arrayEqual{{.Name}}(left, right *{{.Name}}) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {

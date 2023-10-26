@@ -20,6 +20,7 @@ package array
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -108,6 +109,31 @@ func (a *Int64) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(vals)
+}
+
+func (a *Int64) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Bool:
+		v.SetBool(a.Value(i) != 0)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Int64 to %s", v.Kind()))
+	}
 }
 
 func arrayEqualInt64(left, right *Int64) bool {
@@ -205,6 +231,31 @@ func (a *Uint64) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *Uint64) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Bool:
+		v.SetBool(a.Value(i) != 0)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Uint64 to %s", v.Kind()))
+	}
+}
+
 func arrayEqualUint64(left, right *Uint64) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -298,6 +349,27 @@ func (a *Float64) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(vals)
+}
+
+func (a *Float64) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Float32, reflect.Float64:
+		v.SetFloat(float64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Float64 to %s", v.Kind()))
+	}
 }
 
 func arrayEqualFloat64(left, right *Float64) bool {
@@ -395,6 +467,31 @@ func (a *Int32) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *Int32) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Bool:
+		v.SetBool(a.Value(i) != 0)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Int32 to %s", v.Kind()))
+	}
+}
+
 func arrayEqualInt32(left, right *Int32) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -488,6 +585,31 @@ func (a *Uint32) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(vals)
+}
+
+func (a *Uint32) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Bool:
+		v.SetBool(a.Value(i) != 0)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Uint32 to %s", v.Kind()))
+	}
 }
 
 func arrayEqualUint32(left, right *Uint32) bool {
@@ -585,6 +707,27 @@ func (a *Float32) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *Float32) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Float32, reflect.Float64:
+		v.SetFloat(float64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Float32 to %s", v.Kind()))
+	}
+}
+
 func arrayEqualFloat32(left, right *Float32) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -678,6 +821,31 @@ func (a *Int16) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(vals)
+}
+
+func (a *Int16) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Bool:
+		v.SetBool(a.Value(i) != 0)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Int16 to %s", v.Kind()))
+	}
 }
 
 func arrayEqualInt16(left, right *Int16) bool {
@@ -775,6 +943,31 @@ func (a *Uint16) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *Uint16) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Bool:
+		v.SetBool(a.Value(i) != 0)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Uint16 to %s", v.Kind()))
+	}
+}
+
 func arrayEqualUint16(left, right *Uint16) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -868,6 +1061,31 @@ func (a *Int8) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(vals)
+}
+
+func (a *Int8) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Bool:
+		v.SetBool(a.Value(i) != 0)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Int8 to %s", v.Kind()))
+	}
 }
 
 func arrayEqualInt8(left, right *Int8) bool {
@@ -965,6 +1183,31 @@ func (a *Uint8) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *Uint8) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Bool:
+		v.SetBool(a.Value(i) != 0)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Uint8 to %s", v.Kind()))
+	}
+}
+
 func arrayEqualUint8(left, right *Uint8) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -1053,6 +1296,29 @@ func (a *Time32) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(vals)
+}
+
+func (a *Time32) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Time32 to %s", v.Kind()))
+	}
 }
 
 func arrayEqualTime32(left, right *Time32) bool {
@@ -1145,6 +1411,29 @@ func (a *Time64) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *Time64) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Time64 to %s", v.Kind()))
+	}
+}
+
 func arrayEqualTime64(left, right *Time64) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -1233,6 +1522,29 @@ func (a *Date32) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(vals)
+}
+
+func (a *Date32) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Date32 to %s", v.Kind()))
+	}
 }
 
 func arrayEqualDate32(left, right *Date32) bool {
@@ -1325,6 +1637,29 @@ func (a *Date64) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *Date64) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Date64 to %s", v.Kind()))
+	}
+}
+
 func arrayEqualDate64(left, right *Date64) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -1415,6 +1750,29 @@ func (a *Duration) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(vals)
+}
+
+func (a *Duration) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(int64(a.Value(i)))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(a.Value(i)))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow Duration to %s", v.Kind()))
+	}
 }
 
 func arrayEqualDuration(left, right *Duration) bool {

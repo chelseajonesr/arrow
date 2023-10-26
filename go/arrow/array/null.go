@@ -89,6 +89,13 @@ func (a *Null) MarshalJSON() ([]byte, error) {
 	return json.Marshal(make([]interface{}, a.Len()))
 }
 
+func (d *Null) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	v.SetZero()
+}
+
 type NullBuilder struct {
 	builder
 }
@@ -212,7 +219,7 @@ func (b *NullBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *NullBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *NullBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	b.AppendNull()
 	return nil
 }

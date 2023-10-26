@@ -640,7 +640,7 @@ func (b *BinaryViewBuilder) UnmarshalOne(dec *json.Decoder) error {
 	return nil
 }
 
-func (b *BinaryBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *BinaryBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}

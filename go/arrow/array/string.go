@@ -169,6 +169,28 @@ func (a *String) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *String) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString(a.Value(i))
+		// TODO parse numeric etc?
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow String to %s", v.Kind()))
+	}
+}
+
 func arrayEqualString(left, right *String) bool {
 	for i := 0; i < left.Len(); i++ {
 		if left.IsNull(i) {
@@ -310,6 +332,28 @@ func (a *LargeString) MarshalJSON() ([]byte, error) {
 		vals[i] = a.GetOneForMarshal(i)
 	}
 	return json.Marshal(vals)
+}
+
+func (a *LargeString) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString(a.Value(i))
+		// TODO parse numeric etc?
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow LargeString to %s", v.Kind()))
+	}
 }
 
 func arrayEqualLargeString(left, right *LargeString) bool {
@@ -524,7 +568,7 @@ func (b *StringBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *StringBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *StringBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -708,7 +752,7 @@ func (b *StringViewBuilder) NewStringViewArray() (a *StringView) {
 	return
 }
 
-func (b *LargeStringBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *LargeStringBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
