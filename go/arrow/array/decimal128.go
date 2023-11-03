@@ -123,6 +123,7 @@ func (a *Decimal128) SetReflectValue(v reflect.Value, i int, reflectMapping *arr
 	switch v.Kind() {
 	case reflect.String:
 		v.SetString(a.ValueStr(i))
+	// TODO - can we convert to numeric, accepting data loss
 	default:
 		panic(fmt.Errorf("arrow/array: cannot convert arrow Decimal128 to %s", v.Kind()))
 	}
@@ -395,6 +396,7 @@ func (b *Decimal128Builder) AppendReflectValue(v reflect.Value, reflectMapping *
 		b.Append(decimal128.FromI64(v.Int()))
 	case reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
 		b.Append(decimal128.FromU64(v.Uint()))
+	// TODO - string parse?
 	default:
 		return fmt.Errorf("unsupported conversion from %s to arrow.DECIMAL", v.Kind())
 	}

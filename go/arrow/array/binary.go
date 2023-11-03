@@ -481,6 +481,31 @@ func (a *BinaryView) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *BinaryView) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString(a.ValueString(i))
+	case reflect.Array:
+		reflect.Copy(v, reflect.ValueOf(a.Value(i)))
+	case reflect.Slice:
+		v.SetBytes(a.Value(i))
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow BinaryView to %s", v.Kind()))
+	}
+}
+
 func arrayEqualBinaryView(left, right *BinaryView) bool {
 	leftBufs, rightBufs := left.dataBuffers, right.dataBuffers
 	for i := 0; i < left.Len(); i++ {

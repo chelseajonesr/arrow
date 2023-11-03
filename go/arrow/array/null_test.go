@@ -37,16 +37,15 @@ func TestNullArray(t *testing.T) {
 	b.AppendNulls(2)
 	b.AppendEmptyValue()
 	b.AppendEmptyValues(2)
-	b.AppendReflectValue(reflect.ValueOf(nil), nil)
 
 	arr1 := b.NewArray().(*array.Null)
 	defer arr1.Release()
 
-	if got, want := arr1.Len(), 7; got != want {
+	if got, want := arr1.Len(), 6; got != want {
 		t.Fatalf("invalid null array length: got=%d, want=%d", got, want)
 	}
 
-	if got, want := arr1.NullN(), 7; got != want {
+	if got, want := arr1.NullN(), 6; got != want {
 		t.Fatalf("invalid number of nulls: got=%d, want=%d", got, want)
 	}
 
@@ -81,6 +80,37 @@ func TestNullArray(t *testing.T) {
 
 }
 
+func TestNullBuilderAppendReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	b := array.NewNullBuilder(pool)
+	defer b.Release()
+
+	anInt := 32
+	aString := "hello"
+	ptrInt := &anInt
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(nil), nil))
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(aString), nil))
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(anInt), nil))
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(ptrInt), nil))
+
+	arr := b.NewArray().(*array.Null)
+	defer arr.Release()
+
+	if got, want := arr.Len(), 4; got != want {
+		t.Fatalf("invalid null array length: got=%d, want=%d", got, want)
+	}
+
+	if got, want := arr.NullN(), 4; got != want {
+		t.Fatalf("invalid number of nulls: got=%d, want=%d", got, want)
+	}
+
+	if got, want := arr.DataType(), arrow.Null; got != want {
+		t.Fatalf("invalid null data type: got=%v, want=%v", got, want)
+	}
+}
+
 func TestNullStringRoundTrip(t *testing.T) {
 	// 1. create array
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
@@ -109,4 +139,34 @@ func TestNullStringRoundTrip(t *testing.T) {
 	defer arr1.Release()
 
 	assert.True(t, array.Equal(arr, arr1))
+}
+
+func TestNullSetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	b := array.NewNullBuilder(pool)
+	defer b.Release()
+
+	b.AppendNulls(4)
+
+	arr := b.NewArray().(*array.Null)
+	defer arr.Release()
+
+	var anInt int
+	var aString string
+	var ptrFloat64 *float64
+	var aSlice []int32
+
+	for i := 0; i < 4; i++ {
+		arr.SetReflectValue(reflect.ValueOf(&anInt), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aString), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrFloat64), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&aSlice), i, nil)
+
+		assert.Equal(t, 0, anInt)
+		assert.Equal(t, "", aString)
+		assert.Nil(t, ptrFloat64)
+		assert.Equal(t, []int32(nil), aSlice)
+	}
 }

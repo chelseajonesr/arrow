@@ -462,6 +462,28 @@ func (a *StringView) MarshalJSON() ([]byte, error) {
 	return json.Marshal(vals)
 }
 
+func (a *StringView) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.ReflectMapping) {
+	if v.Kind() == reflect.Pointer && !v.CanSet() {
+		v = v.Elem()
+	}
+	if a.IsNull(i) {
+		v.SetZero()
+		return
+	}
+	for v.Kind() == reflect.Pointer {
+		v.Set(reflect.New(v.Type().Elem()))
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString(a.Value(i))
+		// TODO parse numeric etc?
+	default:
+		panic(fmt.Errorf("arrow/array: cannot convert arrow StringView to %s", v.Kind()))
+	}
+}
+
 func arrayEqualStringView(left, right *StringView) bool {
 	leftBufs, rightBufs := left.dataBuffers, right.dataBuffers
 	for i := 0; i < left.Len(); i++ {
@@ -675,6 +697,20 @@ func (b *LargeStringBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *LargeStringBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+
+	b.Append(v.String())
+	return nil
+}
+
 type StringViewBuilder struct {
 	*BinaryViewBuilder
 }
@@ -741,18 +777,7 @@ func (b *StringViewBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
-func (b *StringViewBuilder) NewArray() arrow.Array {
-	return b.NewStringViewArray()
-}
-
-func (b *StringViewBuilder) NewStringViewArray() (a *StringView) {
-	data := b.newData()
-	a = NewStringViewData(data)
-	data.Release()
-	return
-}
-
-func (b *LargeStringBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
+func (b *StringViewBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
@@ -764,6 +789,17 @@ func (b *LargeStringBuilder) AppendReflectValue(v reflect.Value, reflectMapping 
 
 	b.Append(v.String())
 	return nil
+}
+
+func (b *StringViewBuilder) NewArray() arrow.Array {
+	return b.NewStringViewArray()
+}
+
+func (b *StringViewBuilder) NewStringViewArray() (a *StringView) {
+	data := b.newData()
+	a = NewStringViewData(data)
+	data.Release()
+	return
 }
 
 type StringLikeBuilder interface {

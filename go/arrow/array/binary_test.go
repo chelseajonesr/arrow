@@ -723,6 +723,8 @@ func TestBinaryViewStringRoundTrip(t *testing.T) {
 	defer arr1.Release()
 
 	assert.True(t, Equal(arr, arr1))
+}
+
 func TestBinarySetReflectValue(t *testing.T) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	defer mem.AssertSize(t, 0)

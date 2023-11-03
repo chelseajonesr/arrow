@@ -1498,52 +1498,7 @@ func (b *baseListViewBuilder) AppendReflectValue(v reflect.Value, reflectMapping
 	return fmt.Errorf("no conversion available to ListView")
 }
 
-// Pre-conditions:
-//
-//	input.DataType() is ListViewType
-//	input.Len() > 0 && input.NullN() != input.Len()
-func minListViewOffset32(input arrow.ArrayData) int32 {
-	var bitmap []byte
-	if input.Buffers()[0] != nil {
-		bitmap = input.Buffers()[0].Bytes()
-	}
-	offsets := arrow.Int32Traits.CastFromBytes(input.Buffers()[1].Bytes())[input.Offset():]
-	sizes := arrow.Int32Traits.CastFromBytes(input.Buffers()[2].Bytes())[input.Offset():]
-
-	isNull := func(i int) bool {
-		return bitmap != nil && bitutil.BitIsNotSet(bitmap, input.Offset()+i)
-	}
-
-	// It's very likely that the first non-null non-empty list-view starts at
-	// offset 0 of the child array.
-	i := 0
-	for i < input.Len() && (isNull(i) || sizes[i] == 0) {
-		i += 1
-	}
-	if i >= input.Len() {
-		return 0
-	}
-	minOffset := offsets[i]
-	if minOffset == 0 {
-		// early exit: offset 0 found already
-		return 0
-	}
-
-	// Slow path: scan the buffers entirely.
-	i += 1
-	for ; i < input.Len(); i += 1 {
-		if isNull(i) {
-			continue
-		}
-		offset := offsets[i]
-		if offset < minOffset && sizes[i] > 0 {
-			minOffset = offset
-		}
-	}
-	return minOffset
-}
-
-// Find the maximum offset+size in a LIST_VIEW array.
+// Find the minimum offset+size in a LIST_VIEW array.
 //
 // Pre-conditions:
 //

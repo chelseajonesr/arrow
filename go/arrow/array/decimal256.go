@@ -122,6 +122,7 @@ func (a *Decimal256) SetReflectValue(v reflect.Value, i int, reflectMapping *arr
 	switch v.Kind() {
 	case reflect.String:
 		v.SetString(a.ValueStr(i))
+	// TODO - can we convert to numeric, accepting data loss
 	default:
 		panic(fmt.Errorf("arrow/array: cannot convert arrow Decimal256 to %s", v.Kind()))
 	}
@@ -394,6 +395,7 @@ func (b *Decimal256Builder) AppendReflectValue(v reflect.Value, reflectMapping *
 		b.Append(decimal256.FromI64(v.Int()))
 	case reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
 		b.Append(decimal256.FromU64(v.Uint()))
+		// TODO - string parse?
 	default:
 		return fmt.Errorf("unsupported conversion from %s to arrow.DECIMAL", v.Kind())
 	}

@@ -127,19 +127,15 @@ func (a *Boolean) SetReflectValue(v reflect.Value, i int, reflectMapping *arrow.
 	case reflect.Bool:
 		v.SetBool(a.Value(i))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		var asInt int64
+		var asInt int64 = 0
 		if a.Value(i) {
 			asInt = 1
-		} else {
-			asInt = 0
 		}
 		v.SetInt(asInt)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		var asUint uint64
+		var asUint uint64 = 0
 		if a.Value(i) {
 			asUint = 1
-		} else {
-			asUint = 0
 		}
 		v.SetUint(asUint)
 	case reflect.String:

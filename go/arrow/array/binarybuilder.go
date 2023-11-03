@@ -371,6 +371,30 @@ func (b *BinaryBuilder) UnmarshalJSON(data []byte) error {
 	return b.Unmarshal(dec)
 }
 
+func (b *BinaryBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+	switch v.Kind() {
+	case reflect.String:
+		b.AppendString(v.String())
+	case reflect.Slice:
+		if v.IsNil() {
+			b.AppendNull()
+		} else {
+			b.Append(v.Bytes())
+		}
+	default:
+		b.Append(v.Bytes())
+	}
+	return nil
+}
+
 const (
 	dfltBlockSize            = 32 << 10 // 32 KB
 	viewValueSizeLimit int32 = math.MaxInt32
@@ -600,6 +624,7 @@ func (b *BinaryViewBuilder) AppendValueFromString(s string) error {
 		b.AppendNull()
 		return nil
 	}
+
 	if b.dtype.IsUtf8() {
 		b.Append([]byte(s))
 		return nil
@@ -640,30 +665,6 @@ func (b *BinaryViewBuilder) UnmarshalOne(dec *json.Decoder) error {
 	return nil
 }
 
-func (b *BinaryBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
-	for v.Kind() == reflect.Pointer {
-		v = v.Elem()
-	}
-
-	if !v.IsValid() {
-		b.AppendNull()
-		return nil
-	}
-	switch v.Kind() {
-	case reflect.String:
-		b.AppendString(v.String())
-	case reflect.Slice:
-		if v.IsNil() {
-			b.AppendNull()
-		} else {
-			b.Append(v.Bytes())
-		}
-	default:
-		b.Append(v.Bytes())
-	}
-	return nil
-}
-
 func (b *BinaryViewBuilder) Unmarshal(dec *json.Decoder) error {
 	for dec.More() {
 		if err := b.UnmarshalOne(dec); err != nil {
@@ -685,6 +686,30 @@ func (b *BinaryViewBuilder) UnmarshalJSON(data []byte) error {
 	}
 
 	return b.Unmarshal(dec)
+}
+
+func (b *BinaryViewBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		b.AppendNull()
+		return nil
+	}
+	switch v.Kind() {
+	case reflect.String:
+		b.AppendString(v.String())
+	case reflect.Slice:
+		if v.IsNil() {
+			b.AppendNull()
+		} else {
+			b.Append(v.Bytes())
+		}
+	default:
+		b.Append(v.Bytes())
+	}
+	return nil
 }
 
 func (b *BinaryViewBuilder) newData() (data *Data) {

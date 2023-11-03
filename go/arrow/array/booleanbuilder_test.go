@@ -92,6 +92,25 @@ func TestBooleanBuilder_AppendReflectValue(t *testing.T) {
 	assert.Equal(t, false, a.IsValid(0))
 	assert.Equal(t, true, a.IsValid(1))
 	assert.Equal(t, true, a.Value(1))
+
+	asInt := 1
+	asInt16 := int16(0)
+	asUint32 := uint32(1)
+	ptrUint32 := &asUint32
+	asString := "false"
+	asString2 := "T"
+	expected := []bool{true, false, true, true, false, true}
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(asInt), nil))
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(asInt16), nil))
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(asUint32), nil))
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(ptrUint32), nil))
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(asString), nil))
+	assert.NoError(t, b.AppendReflectValue(reflect.ValueOf(asString2), nil))
+	a = b.NewBooleanArray()
+	defer a.Release()
+	for i, e := range expected {
+		assert.Equal(t, e, a.Value(i))
+	}
 }
 
 func TestBooleanBuilder_Empty(t *testing.T) {

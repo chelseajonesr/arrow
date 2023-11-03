@@ -1014,7 +1014,7 @@ func (b *dictionaryBuilder) DictionarySize() int {
 	return b.memoTable.Size()
 }
 
-func (b *dictionaryBuilder) AppendReflectValue(v reflect.Value, reflectMapping *ReflectMapping) error {
+func (b *dictionaryBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arrow.ReflectMapping) error {
 	return fmt.Errorf("no conversion available to Dictionary")
 }
 

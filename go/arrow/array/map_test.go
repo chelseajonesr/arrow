@@ -176,7 +176,7 @@ func TestMapArrayBuildIntToInt(t *testing.T) {
 	assert.Equal(t, "[{[0 1 2 3 4 5] [1 1 2 3 5 8]} (null) {[0 1 2 3 4 5] [(null) (null) 0 1 (null) 2]} {[] []}]", arr.String())
 }
 
-func TestMapBuilder_AppendReflectValue(t *testing.T) {
+func TestMapBuilderAppendReflectValue(t *testing.T) {
 	dt := arrow.MapOf(arrow.BinaryTypes.String, arrow.PrimitiveTypes.Int32)
 
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
@@ -347,4 +347,63 @@ func TestMapBuilder_SetNull(t *testing.T) {
 	assert.True(t, arr.IsNull(0))
 	assert.True(t, arr.IsValid(1))
 	assert.True(t, arr.IsNull(3))
+}
+
+func TestMapSetReflectValue(t *testing.T) {
+	pool := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	defer pool.AssertSize(t, 0)
+
+	var (
+		dtype        = arrow.MapOf(arrow.PrimitiveTypes.Int16, arrow.PrimitiveTypes.Int16)
+		keys         = []int16{0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5}
+		items        = []int16{1, 1, 2, 3, 5, 8, -1, -1, 0, 1, -1, 2}
+		valid        = []bool{true, false, true, true}
+		expectedMaps = []map[int16]int16{
+			{keys[0]: items[0], keys[1]: items[1], keys[2]: items[2], keys[3]: items[3], keys[4]: items[4], keys[5]: items[5]},
+			nil,
+			{keys[6]: 0, keys[7]: 0, keys[8]: items[8], keys[9]: items[9], keys[10]: 0, keys[11]: items[11]},
+			{}}
+		expectedPtrMaps = []map[int16]*int16{
+			{keys[0]: &items[0], keys[1]: &items[1], keys[2]: &items[2], keys[3]: &items[3], keys[4]: &items[4], keys[5]: &items[5]},
+			nil,
+			{keys[6]: nil, keys[7]: nil, keys[8]: &items[8], keys[9]: &items[9], keys[10]: nil, keys[11]: &items[11]},
+			{}}
+	)
+
+	bldr := array.NewBuilder(pool, dtype).(*array.MapBuilder)
+	defer bldr.Release()
+
+	bldr.Reserve(len(valid))
+
+	kb := bldr.KeyBuilder().(*array.Int16Builder)
+	ib := bldr.ItemBuilder().(*array.Int16Builder)
+
+	bldr.Append(true)
+	kb.AppendValues(keys[:6], nil)
+	ib.AppendValues(items[:6], nil)
+
+	bldr.AppendNull()
+	bldr.Append(true)
+	kb.AppendValues(keys[6:], nil)
+	ib.AppendValues(items[6:], []bool{false, false, true, true, false, true})
+
+	bldr.Append(true)
+	arr := bldr.NewArray().(*array.Map)
+	defer arr.Release()
+
+	var aMap map[int16]int16
+	var ptrMap *map[int16]*int16
+
+	for i := range valid {
+		arr.SetReflectValue(reflect.ValueOf(&aMap), i, nil)
+		arr.SetReflectValue(reflect.ValueOf(&ptrMap), i, nil)
+
+		if valid[i] {
+			assert.True(t, reflect.DeepEqual(aMap, expectedMaps[i]), "map is not expected on %d: expected %v got %v", i, expectedMaps[i], aMap)
+			assert.True(t, reflect.DeepEqual(*ptrMap, expectedPtrMaps[i]))
+		} else {
+			assert.Nil(t, aMap)
+			assert.Nil(t, ptrMap)
+		}
+	}
 }

@@ -268,7 +268,20 @@ func (b *BooleanBuilder) AppendReflectValue(v reflect.Value, reflectMapping *arr
 		return nil
 	}
 
-	b.Append(v.Bool())
+	switch v.Kind() {
+	case reflect.Bool:
+		b.Append(v.Bool())
+	case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int8:
+		b.Append(v.Int() != 0)
+	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8:
+		b.Append(v.Uint() != 0)
+	case reflect.String:
+		asBool, err := strconv.ParseBool(v.String())
+		if err != nil {
+			return err
+		}
+		b.Append(asBool)
+	}
 	return nil
 }
 
